@@ -1,7 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { calculateDailyScore, emptyDailyLog, type DailyLog } from "@/app/lib/dailyScoring";
+import {
+  calculateDeliveryPoints,
+  calculateDessertPoints,
+  calculateDineOutPoints,
+  calculateFruitPoints,
+  calculateJunkFoodPoints,
+  calculateSleepPoints,
+  calculateStepPoints,
+  calculateVegetablePoints,
+  calculateWaterPoints,
+  calculateWorkoutPoints,
+  emptyDailyLog,
+  formatPoints,
+  type DailyLog,
+} from "@/app/lib/dailyScoring";
 
 type LogModalProps = {
   isOpen: boolean;
@@ -94,7 +108,32 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
     return () => window.clearTimeout(resetTimer);
   }, [isOpen, initialValues]);
 
-  const preview = useMemo(() => calculateDailyScore(form), [form]);
+  const preview = useMemo(() => {
+    switch (category) {
+      case "Workout":
+        return calculateWorkoutPoints(form.workoutMinutes);
+      case "Steps":
+        return calculateStepPoints(form.steps);
+      case "Fruit":
+        return calculateFruitPoints(form.fruit);
+      case "Vegetable":
+        return calculateVegetablePoints(form.vegetable);
+      case "Dessert":
+        return calculateDessertPoints(form.dessert);
+      case "Junk Food":
+        return calculateJunkFoodPoints(form.junkFood);
+      case "Water":
+        return calculateWaterPoints(form.waterMl);
+      case "Sleep":
+        return calculateSleepPoints(form.sleepHours);
+      case "Dine Out":
+        return calculateDineOutPoints(form.dineOut);
+      case "Delivery":
+        return calculateDeliveryPoints(form.delivery);
+      default:
+        return 0;
+    }
+  }, [category, form]);
 
   if (!isOpen) return null;
 
@@ -231,7 +270,7 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
         )}
 
         <div className="mt-3 small text-secondary">
-          Preview score: <span className="fw-bold text-primary">{preview}</span>
+          This activity: <span className={`fw-bold ${preview < 0 ? "text-danger" : "text-primary"}`}>{preview > 0 ? "+" : ""}{formatPoints(preview)} points</span>
         </div>
 
         <div className="d-grid gap-2 mt-4">
