@@ -7,6 +7,7 @@ import { type DailyLog } from "@/app/lib/dailyScoring";
 
 type ChallengeType = "steps" | "workout" | "no_delivery" | "no_dessert";
 type Challenge = { id: string; title: string; emoji: string; description: string; type: ChallengeType; startDate: string; endDate: string; target: number; requiredDays: number; bonus: number };
+type ChallengeWinner = { challengeId: string; userId: string; name: string; badgeName: string };
 const today = new Date().toISOString().slice(0, 10);
 const presets = [
   { title: "10K Step Battle", emoji: "🚶", description: "Reach your step target on as many days as possible.", type: "steps" as const, bonus: 10, defaultTarget: 10000 },
@@ -34,19 +35,24 @@ export default function ChallengesPage() {
   const [target, setTarget] = useState(String(presets[0].defaultTarget));
   const [requiredDays, setRequiredDays] = useState("7");
   const [databaseError, setDatabaseError] = useState("");
+  const [winners, setWinners] = useState<ChallengeWinner[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
-      const [{ data: challengeRows, error: challengeError }, { data: logRows, error: logError }] = await Promise.all([
+      const [{ data: challengeRows, error: challengeError }, { data: logRows, error: logError }, { data: winnerRows, error: winnerError }, { data: memberRows, error: memberError }] = await Promise.all([
         supabase.from("challenges").select("*").order("created_at", { ascending: false }),
         supabase.from("daily_logs").select("*").eq("user_id", userData.user.id).order("log_date", { ascending: true }),
+        supabase.from("challenge_winners").select("challenge_id, user_id, badge_name"),
+        supabase.from("app_members").select("user_id, display_name"),
       ]);
-      if (challengeError || logError) {
-        setDatabaseError(challengeError?.message ?? logError?.message ?? "Could not load challenge data");
+      if (challengeError || logError || winnerError || memberError) {
+        setDatabaseError(challengeError?.message ?? logError?.message ?? winnerError?.message ?? memberError?.message ?? "Could not load challenge data");
         return;
       }
+      const memberNames = new Map((memberRows ?? []).map((member) => [member.user_id, member.display_name]));
+      setWinners((winnerRows ?? []).map((winner) => ({ challengeId: winner.challenge_id, userId: winner.user_id, name: memberNames.get(winner.user_id) ?? "Member", badgeName: winner.badge_name })));
       setChallenges((challengeRows ?? []).map((row) => ({
         id: row.id,
         title: row.title,
@@ -116,7 +122,7 @@ export default function ChallengesPage() {
         <button className="btn btn-primary-soft rounded-pill w-100 mt-3" onClick={addChallenge}>Add challenge</button>
       </section>
       {databaseError ? <div className="alert alert-danger">Could not sync challenges: {databaseError}</div> : null}
-      <div className="d-grid gap-4">{challenges.map((challenge) => { const progress = getProgress(challenge, logs); return <section key={challenge.id} className="soft-card p-3 p-sm-4"><div className="d-flex align-items-start justify-content-between gap-3"><div><p className="section-label text-primary mb-2">{challenge.startDate > today ? "Upcoming" : challenge.endDate < today ? "Completed" : "Active"}</p><h3 className="h5 fw-bolder mb-0">{challenge.emoji} {challenge.title}</h3></div><span className="points-badge">+{challenge.bonus}</span></div><p className="mt-3 text-secondary mb-2">{challenge.description}</p><small className="text-secondary">{challenge.startDate} to {challenge.endDate}</small><div className="progress mt-3" style={{ height: 10 }}><div className="progress-bar" style={{ width: `${Math.min(100, (progress / challenge.requiredDays) * 100)}%` }} /></div><div className="d-flex justify-content-between mt-2 small fw-bold"><span>{progress} successful days</span><span>{challenge.requiredDays} required</span></div></section>; })}</div>
+      <div className="d-grid gap-4">{challenges.map((challenge) => { const progress = getProgress(challenge, logs); const challengeWinners = winners.filter((winner) => winner.challengeId === challenge.id); return <section key={challenge.id} className="soft-card p-3 p-sm-4"><div className="d-flex align-items-start justify-content-between gap-3"><div><p className="section-label text-primary mb-2">{challenge.startDate > today ? "Upcoming" : challenge.endDate < today ? "Completed" : "Active"}</p><h3 className="h5 fw-bolder mb-0">{challenge.emoji} {challenge.title}</h3></div><span className="points-badge">+{challenge.bonus}</span></div><p className="mt-3 text-secondary mb-2">{challenge.description}</p><small className="text-secondary">{challenge.startDate} to {challenge.endDate}</small><div className="progress mt-3" style={{ height: 10 }}><div className="progress-bar" style={{ width: `${Math.min(100, (progress / challenge.requiredDays) * 100)}%` }} /></div><div className="d-flex justify-content-between mt-2 small fw-bold"><span>{progress} successful days</span><span>{challenge.requiredDays} required</span></div>{challengeWinners.length > 0 ? <div className="alert alert-warning mt-3 mb-0">🏆 {challengeWinners.map((winner) => `${winner.name} · ${winner.badgeName}`).join(" and ")}</div> : null}</section>; })}</div>
     </AppShell>
   );
 }
