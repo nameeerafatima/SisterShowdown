@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
-import { badges } from "@/app/data/mockData";
 import { supabase } from "@/app/lib/supabase";
 
 function formatWeight(value: number | null) {
@@ -54,10 +53,6 @@ export default function ProgressPage() {
         {error ? <div className="alert alert-danger mt-3 mb-0">Could not load weight: {error}</div> : null}
       </section>
 
-      <section className="soft-card p-3 mt-4">
-        <h3 className="section-label mb-3">Badges</h3>
-        <div className="row g-3">{badges.map((badge) => <div key={badge.name} className="col-6"><div className="list-surface d-flex align-items-center gap-2"><span className="fs-5">{badge.icon}</span><span className="fw-bold small">{badge.name}</span></div></div>)}</div>
-      </section>
     </AppShell>
   );
 }
