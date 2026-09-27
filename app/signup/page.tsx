@@ -23,9 +23,17 @@ export default function SignupPage() {
       setLoading(false);
       return;
     }
-    if (data.user) await supabase.from("app_members").upsert({ user_id: data.user.id, display_name: name });
-    if (data.session) router.replace("/dashboard");
-    else setError("Account created. Check your email before signing in.");
+    if (data.session && data.user) {
+      const { error: memberError } = await supabase.from("app_members").upsert({ user_id: data.user.id, display_name: name });
+      if (memberError) {
+        setError(memberError.message);
+        setLoading(false);
+        return;
+      }
+      router.replace("/dashboard");
+    } else {
+      setError("Account created. Check your email before signing in.");
+    }
     setLoading(false);
   };
 

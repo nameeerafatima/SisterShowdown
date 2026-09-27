@@ -22,11 +22,20 @@ export default function LoginPage() {
     event.preventDefault();
     setLoading(true);
     setError("");
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) {
       setError(signInError.message);
       setLoading(false);
       return;
+    }
+    if (data.user) {
+      const displayName = data.user.user_metadata?.display_name || email.split("@")[0];
+      const { error: memberError } = await supabase.from("app_members").upsert({ user_id: data.user.id, display_name: displayName });
+      if (memberError) {
+        setError(memberError.message);
+        setLoading(false);
+        return;
+      }
     }
     router.replace("/dashboard");
   };
