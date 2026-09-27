@@ -75,6 +75,22 @@ export const dailyHabits = [
     completed: true,
     detail: "7h 32m",
   },
+  {
+    id: "dine-out",
+    label: "Dine Out",
+    emoji: "🍽️",
+    points: -1,
+    completed: false,
+    detail: "-1 if logged",
+  },
+  {
+    id: "delivery",
+    label: "Delivery",
+    emoji: "🛵",
+    points: -1,
+    completed: false,
+    detail: "-1 if logged",
+  },
 ];
 
 export const weeklyChallenges = [

@@ -11,7 +11,7 @@ type LogModalProps = {
   initialValues?: DailyLog;
 };
 
-const categoryConfig: Record<string, { title: string; inputLabel: string; placeholder: string; type: "minutes" | "steps" | "text" | "water" | "sleep" }> = {
+const categoryConfig: Record<string, { title: string; inputLabel: string; placeholder: string; type: "minutes" | "steps" | "text" | "water" | "sleep" | "toggle" }> = {
   Workout: { title: "Workout", inputLabel: "Duration", placeholder: "01:30", type: "minutes" },
   Steps: { title: "Steps", inputLabel: "Daily steps", placeholder: "8500", type: "steps" },
   Fruit: { title: "Fruit", inputLabel: "Fruit you ate", placeholder: "Apple", type: "text" },
@@ -20,6 +20,8 @@ const categoryConfig: Record<string, { title: string; inputLabel: string; placeh
   "Junk Food": { title: "Junk Food", inputLabel: "What junk food did you eat?", placeholder: "Fries", type: "text" },
   Water: { title: "Water", inputLabel: "Water amount (ml)", placeholder: "3000", type: "water" },
   Sleep: { title: "Sleep", inputLabel: "Sleep duration", placeholder: "7.5", type: "sleep" },
+  "Dine Out": { title: "Dine Out", inputLabel: "Did you dine out today?", placeholder: "", type: "toggle" },
+  Delivery: { title: "Delivery", inputLabel: "Did you order delivery today?", placeholder: "", type: "toggle" },
 };
 
 function parseDurationToMinutes(value: string) {
@@ -133,6 +135,15 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
       setForm((current) => ({ ...current, junkFood: value }));
       return;
     }
+
+    if (category === "Dine Out") {
+      setForm((current) => ({ ...current, dineOut: value === "true" }));
+      return;
+    }
+
+    if (category === "Delivery") {
+      setForm((current) => ({ ...current, delivery: value === "true" }));
+    }
   };
 
   const handleSubmit = () => {
@@ -178,6 +189,17 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
                 onChange={(value) => handleWorkoutTimeChange("minutes", value)}
               />
             </div>
+          </div>
+        ) : config.type === "toggle" ? (
+          <div className="form-check form-switch fs-5">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              checked={category === "Dine Out" ? form.dineOut : form.delivery}
+              onChange={(event) => applyValue(String(event.target.checked))}
+              id={`toggle-${category}`}
+            />
+            <label className="form-check-label" htmlFor={`toggle-${category}`}>{config.inputLabel}</label>
           </div>
         ) : (
           <>

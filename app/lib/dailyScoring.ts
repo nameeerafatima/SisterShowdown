@@ -1,4 +1,6 @@
 export type DailyLog = {
+  logDate: string;
+  dayCheckedIn: boolean;
   workoutMinutes: number;
   steps: number;
   fruit: string;
@@ -7,9 +9,13 @@ export type DailyLog = {
   junkFood: string;
   waterMl: number;
   sleepHours: number;
+  dineOut: boolean;
+  delivery: boolean;
 };
 
 export const emptyDailyLog: DailyLog = {
+  logDate: new Date().toISOString().slice(0, 10),
+  dayCheckedIn: false,
   workoutMinutes: 0,
   steps: 0,
   fruit: "",
@@ -18,9 +24,12 @@ export const emptyDailyLog: DailyLog = {
   junkFood: "",
   waterMl: 0,
   sleepHours: 0,
+  dineOut: false,
+  delivery: false,
 };
 
 export const DAILY_LOG_STORAGE_KEY = "sister-showdown-daily-log";
+export const DAILY_LOG_HISTORY_STORAGE_KEY = "sister-showdown-daily-log-history";
 
 export function calculateWorkoutPoints(minutes: number) {
   if (!Number.isFinite(minutes) || minutes <= 0) return 0;
@@ -48,6 +57,14 @@ export function calculateJunkFoodPoints(junkFood: string | null | undefined) {
   return junkFood && junkFood.trim() ? -1 : 0;
 }
 
+export function calculateDineOutPoints(dineOut: boolean) {
+  return dineOut ? -1 : 0;
+}
+
+export function calculateDeliveryPoints(delivery: boolean) {
+  return delivery ? -1 : 0;
+}
+
 export function calculateWaterPoints(waterMl: number) {
   if (!Number.isFinite(waterMl) || waterMl <= 0) return 0;
   return waterMl >= 3000 ? 1 : 0;
@@ -69,6 +86,8 @@ export function calculateDailyScore(log: DailyLog) {
   const junkFoodPoints = calculateJunkFoodPoints(log.junkFood);
   const waterPoints = calculateWaterPoints(log.waterMl);
   const sleepPoints = calculateSleepPoints(log.sleepHours);
+  const dineOutPoints = calculateDineOutPoints(log.dineOut);
+  const deliveryPoints = calculateDeliveryPoints(log.delivery);
 
   return Number(
     (
@@ -79,10 +98,42 @@ export function calculateDailyScore(log: DailyLog) {
       dessertPoints +
       junkFoodPoints +
       waterPoints +
-      sleepPoints
+      sleepPoints +
+      dineOutPoints +
+      deliveryPoints
     ).toFixed(1),
   );
 }
+
+function dateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function previousDate(date: string) {
+  const value = new Date(`${date}T00:00:00`);
+  value.setDate(value.getDate() - 1);
+  return dateKey(value);
+}
+
+export function calculateStreak(logs: DailyLog[], qualifies: (log: DailyLog) => boolean) {
+  const byDate = new Map(logs.map((log) => [log.logDate, log]));
+  let date = dateKey(new Date());
+  let streak = 0;
+
+  while (true) {
+    const log = byDate.get(date);
+    if (!log || !log.dayCheckedIn || !qualifies(log)) return streak;
+    streak += 1;
+    date = previousDate(date);
+  }
+}
+
+export const streakRules = {
+  workout: (log: DailyLog) => log.workoutMinutes > 0,
+  noDessert: (log: DailyLog) => !log.dessert.trim(),
+  noDelivery: (log: DailyLog) => !log.delivery,
+  steps: (log: DailyLog) => log.steps >= 10000,
+};
 
 export function formatPoints(value: number) {
   if (Number.isInteger(value)) return `${value}`;

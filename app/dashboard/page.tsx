@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
 import { competition, dailyHabits } from "@/app/data/mockData";
-import { calculateDailyScore, DAILY_LOG_STORAGE_KEY, emptyDailyLog, formatPoints, type DailyLog, getLeadMessage } from "@/app/lib/dailyScoring";
+import { calculateDailyScore, calculateStreak, DAILY_LOG_HISTORY_STORAGE_KEY, DAILY_LOG_STORAGE_KEY, emptyDailyLog, formatPoints, streakRules, type DailyLog, getLeadMessage } from "@/app/lib/dailyScoring";
 
 const scoreCards = [
   { label: "YOU", value: 487 },
@@ -13,6 +13,7 @@ const scoreCards = [
 
 export default function DashboardPage() {
   const [savedLog, setSavedLog] = useState<DailyLog>({ ...emptyDailyLog });
+  const [history, setHistory] = useState<DailyLog[]>([]);
 
   useEffect(() => {
     const stored = localStorage.getItem(DAILY_LOG_STORAGE_KEY);
@@ -22,6 +23,15 @@ export default function DashboardPage() {
       setSavedLog(JSON.parse(stored) as DailyLog);
     } catch {
       setSavedLog({ ...emptyDailyLog });
+    }
+
+    const storedHistory = localStorage.getItem(DAILY_LOG_HISTORY_STORAGE_KEY);
+    if (storedHistory) {
+      try {
+        setHistory(JSON.parse(storedHistory) as DailyLog[]);
+      } catch {
+        setHistory([]);
+      }
     }
   }, []);
 
@@ -56,13 +66,13 @@ export default function DashboardPage() {
           <div className="col-6">
             <div className="metric-box text-white">
               <span className="fs-5">🔥</span>
-              <div className="mt-2">6 day streak</div>
+              <div className="mt-2">{calculateStreak(history, streakRules.workout)} day workout streak</div>
             </div>
           </div>
           <div className="col-6">
             <div className="metric-box text-white">
               <span className="fs-5">🔥</span>
-              <div className="mt-2">4 day streak</div>
+              <div className="mt-2">{calculateStreak(history, streakRules.noDelivery)} day no-delivery streak</div>
             </div>
           </div>
         </div>
