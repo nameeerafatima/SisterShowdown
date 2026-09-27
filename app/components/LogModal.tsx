@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { calculateDailyScore, DAILY_LOG_STORAGE_KEY, emptyDailyLog, type DailyLog } from "@/app/lib/dailyScoring";
+import { calculateDailyScore, emptyDailyLog, type DailyLog } from "@/app/lib/dailyScoring";
 
 type LogModalProps = {
   isOpen: boolean;
@@ -86,8 +86,12 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
   useEffect(() => {
     if (!isOpen) return;
 
-    setForm(initialValues ?? defaultState());
-    setInputText("");
+    const resetTimer = window.setTimeout(() => {
+      setForm(initialValues ?? defaultState());
+      setInputText("");
+    }, 0);
+
+    return () => window.clearTimeout(resetTimer);
   }, [isOpen, initialValues]);
 
   const preview = useMemo(() => calculateDailyScore(form), [form]);

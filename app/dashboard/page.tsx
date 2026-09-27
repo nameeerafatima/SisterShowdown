@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
 import { competition, dailyHabits } from "@/app/data/mockData";
-import { calculateDailyScore, calculateStreak, DAILY_LOG_HISTORY_STORAGE_KEY, DAILY_LOG_STORAGE_KEY, emptyDailyLog, formatPoints, streakRules, type DailyLog, getLeadMessage } from "@/app/lib/dailyScoring";
+import { supabase } from "@/app/lib/supabase";
+import { calculateDailyScore, calculateStreak, emptyDailyLog, formatPoints, streakRules, type DailyLog, getLeadMessage } from "@/app/lib/dailyScoring";
 
 const scoreCards = [
   { label: "YOU", value: 487 },
@@ -16,23 +17,30 @@ export default function DashboardPage() {
   const [history, setHistory] = useState<DailyLog[]>([]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(DAILY_LOG_STORAGE_KEY);
-    if (!stored) return;
+    const loadLogs = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const { data } = await supabase.from("daily_logs").select("*").eq("user_id", userData.user.id).order("log_date", { ascending: true });
+      const logs = (data ?? []).map((row) => ({
+        logDate: row.log_date,
+        dayCheckedIn: row.day_checked_in,
+        workoutMinutes: row.workout_minutes,
+        steps: row.steps,
+        fruit: row.fruit,
+        vegetable: row.vegetable,
+        dessert: row.dessert,
+        junkFood: row.junk_food,
+        waterMl: row.water_ml,
+        sleepHours: Number(row.sleep_minutes) / 60,
+        dineOut: row.dine_out,
+        delivery: row.delivery,
+      })) as DailyLog[];
+      setHistory(logs);
+      const todayLog = logs.find((log) => log.logDate === new Date().toISOString().slice(0, 10));
+      if (todayLog) setSavedLog(todayLog);
+    };
 
-    try {
-      setSavedLog(JSON.parse(stored) as DailyLog);
-    } catch {
-      setSavedLog({ ...emptyDailyLog });
-    }
-
-    const storedHistory = localStorage.getItem(DAILY_LOG_HISTORY_STORAGE_KEY);
-    if (storedHistory) {
-      try {
-        setHistory(JSON.parse(storedHistory) as DailyLog[]);
-      } catch {
-        setHistory([]);
-      }
-    }
+    void loadLogs();
   }, []);
 
   const todayScore = calculateDailyScore(savedLog);

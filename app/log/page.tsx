@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
 import { LogModal } from "@/app/components/LogModal";
-import { calculateDailyScore, calculateStreak, DAILY_LOG_HISTORY_STORAGE_KEY, DAILY_LOG_STORAGE_KEY, emptyDailyLog, streakRules, type DailyLog } from "@/app/lib/dailyScoring";
+import { supabase } from "@/app/lib/supabase";
+import { calculateDailyScore, calculateStreak, emptyDailyLog, streakRules, type DailyLog } from "@/app/lib/dailyScoring";
 
 const habits = [
   { emoji: "🏋️", title: "Workout", points: "+3 per hour", accent: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" },
@@ -22,39 +23,80 @@ export default function LogPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [savedLog, setSavedLog] = useState<DailyLog>({ ...emptyDailyLog });
   const [history, setHistory] = useState<DailyLog[]>([]);
+  const [databaseError, setDatabaseError] = useState("");
 
   useEffect(() => {
+    const loadLogs = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+
+      const { data, error } = await supabase.from("daily_logs").select("*").eq("user_id", userData.user.id).order("log_date", { ascending: true });
+      if (error) {
+        setDatabaseError(error.message);
+        return;
+      }
+
+      const logs = (data ?? []).map((row) => ({
+        logDate: row.log_date,
+        dayCheckedIn: row.day_checked_in,
+        workoutMinutes: row.workout_minutes,
+        steps: row.steps,
+        fruit: row.fruit,
+        vegetable: row.vegetable,
+        dessert: row.dessert,
+        junkFood: row.junk_food,
+        waterMl: row.water_ml,
+        sleepHours: Number(row.sleep_minutes) / 60,
+        dineOut: row.dine_out,
+        delivery: row.delivery,
+      })) as DailyLog[];
+
+      setHistory(logs);
+      const todayLog = logs.find((log) => log.logDate === new Date().toISOString().slice(0, 10));
+      if (todayLog) setSavedLog(todayLog);
+    };
+
     const requestedCategory = new URLSearchParams(window.location.search).get("category");
     const isKnownCategory = habits.some((habit) => habit.title === requestedCategory);
-    if (isKnownCategory) setSelectedCategory(requestedCategory);
+    const categoryTimer = window.setTimeout(() => {
+      if (isKnownCategory) setSelectedCategory(requestedCategory);
+    }, 0);
 
-    const stored = localStorage.getItem(DAILY_LOG_STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as DailyLog;
-        setSavedLog(parsed);
-      } catch {
-        setSavedLog({ ...emptyDailyLog });
-      }
-    }
+    void loadLogs();
 
-    const storedHistory = localStorage.getItem(DAILY_LOG_HISTORY_STORAGE_KEY);
-    if (storedHistory) {
-      try {
-        setHistory(JSON.parse(storedHistory) as DailyLog[]);
-      } catch {
-        setHistory([]);
-      }
-    }
+    return () => window.clearTimeout(categoryTimer);
   }, []);
 
-  const handleSave = (payload: DailyLog) => {
+  const handleSave = async (payload: DailyLog) => {
     const next = { ...payload };
     const nextHistory = [...history.filter((log) => log.logDate !== next.logDate), next].sort((a, b) => a.logDate.localeCompare(b.logDate));
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+
+    const { error } = await supabase.from("daily_logs").upsert({
+      user_id: userData.user.id,
+      log_date: next.logDate,
+      day_checked_in: next.dayCheckedIn,
+      workout_minutes: next.workoutMinutes,
+      steps: next.steps,
+      fruit: next.fruit,
+      vegetable: next.vegetable,
+      dessert: next.dessert,
+      junk_food: next.junkFood,
+      water_ml: next.waterMl,
+      sleep_minutes: Math.round(next.sleepHours * 60),
+      dine_out: next.dineOut,
+      delivery: next.delivery,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,log_date" });
+
+    if (error) {
+      setDatabaseError(error.message);
+      return;
+    }
+
     setSavedLog(next);
     setHistory(nextHistory);
-    localStorage.setItem(DAILY_LOG_STORAGE_KEY, JSON.stringify(next));
-    localStorage.setItem(DAILY_LOG_HISTORY_STORAGE_KEY, JSON.stringify(nextHistory));
     setSelectedCategory(null);
   };
 
@@ -99,6 +141,8 @@ export default function LogPage() {
               ))}
             </section>
       </div>
+
+      {databaseError ? <div className="alert alert-danger">Could not sync this log: {databaseError}</div> : null}
 
       <div className="row g-3">
         {habits.map((habit) => (

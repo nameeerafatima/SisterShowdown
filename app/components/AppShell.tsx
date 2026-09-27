@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/app/lib/supabase";
 
 export const navItems = [
   { href: "/dashboard", label: "Home", icon: "🏠" },
@@ -21,6 +24,31 @@ type AppShellProps = {
 
 export function AppShell({ title, subtitle, children, rightSlot }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      if (!data.session) router.replace("/login");
+      setCheckingAuth(false);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) router.replace("/login");
+    });
+
+    return () => {
+      mounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, [router]);
+
+  if (checkingAuth) {
+    return <div className="app-shell d-flex align-items-center justify-content-center"><div className="spinner-border text-primary" role="status" /></div>;
+  }
 
   return (
     <div className="app-shell">
@@ -34,9 +62,12 @@ export function AppShell({ title, subtitle, children, rightSlot }: AppShellProps
             </div>
 
             {rightSlot ?? (
-              <Link href="/profile" className="d-flex align-items-center justify-content-center rounded-circle bg-white border border-light shadow-sm" style={{ width: 42, height: 42, textDecoration: "none" }}>
-                <span style={{ fontSize: 20 }}>👩‍💼</span>
-              </Link>
+              <div className="d-flex align-items-center gap-2">
+                <Link href="/profile" className="d-flex align-items-center justify-content-center rounded-circle bg-white border border-light shadow-sm" style={{ width: 42, height: 42, textDecoration: "none" }}>
+                  <span style={{ fontSize: 20 }}>👩‍💼</span>
+                </Link>
+                <button className="btn btn-sm btn-light rounded-pill" onClick={() => supabase.auth.signOut()} aria-label="Sign out">↪</button>
+              </div>
             )}
           </div>
         </header>

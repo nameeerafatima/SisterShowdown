@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
-import { DAILY_LOG_HISTORY_STORAGE_KEY, type DailyLog } from "@/app/lib/dailyScoring";
+import { supabase } from "@/app/lib/supabase";
+import { type DailyLog } from "@/app/lib/dailyScoring";
 
 type ChallengeType = "steps" | "workout" | "no_delivery" | "no_dessert";
 type Challenge = { id: string; title: string; emoji: string; description: string; type: ChallengeType; startDate: string; endDate: string; target: number; requiredDays: number; bonus: number };
-const CHALLENGES_STORAGE_KEY = "sister-showdown-challenges";
 const today = new Date().toISOString().slice(0, 10);
 const presets = [
   { title: "10K Step Battle", emoji: "🚶", description: "Reach your step target on as many days as possible.", type: "steps" as const, bonus: 10, defaultTarget: 10000 },
@@ -33,21 +33,73 @@ export default function ChallengesPage() {
   const [endDate, setEndDate] = useState(today);
   const [target, setTarget] = useState(String(presets[0].defaultTarget));
   const [requiredDays, setRequiredDays] = useState("7");
+  const [databaseError, setDatabaseError] = useState("");
 
   useEffect(() => {
-    const storedChallenges = localStorage.getItem(CHALLENGES_STORAGE_KEY);
-    const storedLogs = localStorage.getItem(DAILY_LOG_HISTORY_STORAGE_KEY);
-    if (storedChallenges) setChallenges(JSON.parse(storedChallenges) as Challenge[]);
-    if (storedLogs) setLogs(JSON.parse(storedLogs) as DailyLog[]);
+    const loadData = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const [{ data: challengeRows, error: challengeError }, { data: logRows, error: logError }] = await Promise.all([
+        supabase.from("challenges").select("*").order("created_at", { ascending: false }),
+        supabase.from("daily_logs").select("*").eq("user_id", userData.user.id).order("log_date", { ascending: true }),
+      ]);
+      if (challengeError || logError) {
+        setDatabaseError(challengeError?.message ?? logError?.message ?? "Could not load challenge data");
+        return;
+      }
+      setChallenges((challengeRows ?? []).map((row) => ({
+        id: row.id,
+        title: row.title,
+        emoji: row.challenge_type === "steps" ? "🚶" : row.challenge_type === "workout" ? "🏋️" : row.challenge_type === "no_delivery" ? "🛵" : "🍰",
+        description: row.description,
+        type: row.challenge_type,
+        startDate: row.start_date,
+        endDate: row.end_date,
+        target: row.target_value,
+        requiredDays: row.required_days,
+        bonus: Number(row.bonus_points),
+      })) as Challenge[]);
+      setLogs((logRows ?? []).map((row) => ({
+        logDate: row.log_date,
+        dayCheckedIn: row.day_checked_in,
+        workoutMinutes: row.workout_minutes,
+        steps: row.steps,
+        fruit: row.fruit,
+        vegetable: row.vegetable,
+        dessert: row.dessert,
+        junkFood: row.junk_food,
+        waterMl: row.water_ml,
+        sleepHours: Number(row.sleep_minutes) / 60,
+        dineOut: row.dine_out,
+        delivery: row.delivery,
+      })) as DailyLog[]);
+    };
+
+    void loadData();
   }, []);
 
   const choosePreset = (preset: typeof presets[number]) => { setSelectedPreset(preset); setTarget(String(preset.defaultTarget)); };
-  const addChallenge = () => {
+  const addChallenge = async () => {
     if (endDate < startDate) return;
-    const next: Challenge = { id: crypto.randomUUID(), title: selectedPreset.title, emoji: selectedPreset.emoji, description: selectedPreset.description, type: selectedPreset.type, startDate, endDate, target: Number(target) || 0, requiredDays: Math.max(1, Number(requiredDays) || 1), bonus: selectedPreset.bonus };
-    const nextChallenges = [next, ...challenges];
-    setChallenges(nextChallenges);
-    localStorage.setItem(CHALLENGES_STORAGE_KEY, JSON.stringify(nextChallenges));
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+    const { data, error } = await supabase.from("challenges").insert({
+      title: selectedPreset.title,
+      description: selectedPreset.description,
+      challenge_type: selectedPreset.type,
+      start_date: startDate,
+      end_date: endDate,
+      target_value: Number(target) || 0,
+      required_days: Math.max(1, Number(requiredDays) || 1),
+      bonus_points: selectedPreset.bonus,
+      created_by: userData.user.id,
+    }).select().single();
+    if (error) {
+      setDatabaseError(error.message);
+      return;
+    }
+    if (!data) return;
+    setChallenges((current) => [{ id: data.id, title: data.title, emoji: selectedPreset.emoji, description: data.description, type: data.challenge_type, startDate: data.start_date, endDate: data.end_date, target: data.target_value, requiredDays: data.required_days, bonus: Number(data.bonus_points) }, ...current]);
   };
 
   return (
@@ -63,6 +115,7 @@ export default function ChallengesPage() {
         </div>
         <button className="btn btn-primary-soft rounded-pill w-100 mt-3" onClick={addChallenge}>Add challenge</button>
       </section>
+      {databaseError ? <div className="alert alert-danger">Could not sync challenges: {databaseError}</div> : null}
       <div className="d-grid gap-4">{challenges.map((challenge) => { const progress = getProgress(challenge, logs); return <section key={challenge.id} className="soft-card p-3 p-sm-4"><div className="d-flex align-items-start justify-content-between gap-3"><div><p className="section-label text-primary mb-2">{challenge.startDate > today ? "Upcoming" : challenge.endDate < today ? "Completed" : "Active"}</p><h3 className="h5 fw-bolder mb-0">{challenge.emoji} {challenge.title}</h3></div><span className="points-badge">+{challenge.bonus}</span></div><p className="mt-3 text-secondary mb-2">{challenge.description}</p><small className="text-secondary">{challenge.startDate} to {challenge.endDate}</small><div className="progress mt-3" style={{ height: 10 }}><div className="progress-bar" style={{ width: `${Math.min(100, (progress / challenge.requiredDays) * 100)}%` }} /></div><div className="d-flex justify-content-between mt-2 small fw-bold"><span>{progress} successful days</span><span>{challenge.requiredDays} required</span></div></section>; })}</div>
     </AppShell>
   );
