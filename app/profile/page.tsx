@@ -66,18 +66,8 @@ export default function ProfilePage() {
           <h3 className="section-label mb-3">Competition</h3>
           <div className="d-grid gap-2 text-secondary">
             <div><span className="fw-bold text-dark">Name:</span> December Wedding War</div>
-            <div><span className="fw-bold text-dark">Start:</span> December 1, 2026</div>
+            <div><span className="fw-bold text-dark">Start:</span> September 28, 2026</div>
             <div><span className="fw-bold text-dark">End:</span> January 1, 2027</div>
-          </div>
-        </section>
-
-        <section className="soft-card p-3">
-          <h3 className="section-label mb-3">Settings</h3>
-          <div className="d-grid gap-2 text-secondary">
-            <div>Daily reminder</div>
-            <div>Sister activity</div>
-            <div>Weekly results</div>
-            <div>Challenge reminders</div>
           </div>
         </section>
 
