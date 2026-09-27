@@ -25,7 +25,7 @@ export default function SignupPage() {
       return;
     }
     if (data.session && data.user) {
-      const { error: memberError } = await supabase.from("app_members").upsert({ user_id: data.user.id, display_name: name, weight_kg: Number(weight) });
+      const { error: memberError } = await supabase.from("app_members").upsert({ user_id: data.user.id, display_name: name, weight_kg: Number(weight), initial_weight_kg: Number(weight) });
       if (memberError) {
         setError(memberError.message);
         setLoading(false);

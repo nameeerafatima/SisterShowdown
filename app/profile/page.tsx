@@ -18,7 +18,7 @@ export default function ProfilePage() {
       if (!userData.user) return;
 
       setEmail(userData.user.email ?? "");
-      const { data: member } = await supabase.from("app_members").select("display_name, weight_kg").eq("user_id", userData.user.id).maybeSingle();
+      const { data: member } = await supabase.from("app_members").select("display_name, weight_kg, initial_weight_kg").eq("user_id", userData.user.id).maybeSingle();
       setName(member?.display_name || userData.user.user_metadata?.display_name || userData.user.email?.split("@")[0] || "Member");
       setWeight(member?.weight_kg ? String(member.weight_kg) : "");
     };
