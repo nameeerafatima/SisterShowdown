@@ -3,8 +3,24 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
 import { supabase } from "@/app/lib/supabase";
+import { calculateDailyScore, formatPoints, type DailyLog } from "@/app/lib/dailyScoring";
 
-type EarnedBadge = { challengeId: string; badgeName: string; challengeName: string; awardedAt: string };
+function mapDatabaseLog(row: Record<string, unknown>): DailyLog {
+  return {
+    logDate: String(row.log_date),
+    dayCheckedIn: Boolean(row.day_checked_in),
+    workoutMinutes: Number(row.workout_minutes),
+    steps: Number(row.steps),
+    fruit: String(row.fruit ?? ""),
+    vegetable: String(row.vegetable ?? ""),
+    dessert: String(row.dessert ?? ""),
+    junkFood: String(row.junk_food ?? ""),
+    waterMl: Number(row.water_ml),
+    sleepHours: Number(row.sleep_minutes) / 60,
+    dineOut: Boolean(row.dine_out),
+    delivery: Boolean(row.delivery),
+  };
+}
 
 function formatWeight(value: number | null) {
   return value === null ? "--" : value.toFixed(1);
@@ -13,41 +29,27 @@ function formatWeight(value: number | null) {
 export default function ProgressPage() {
   const [initialWeight, setInitialWeight] = useState<number | null>(null);
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
-  const [badges, setBadges] = useState<EarnedBadge[]>([]);
+  const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [weightError, setWeightError] = useState("");
-  const [badgeSetupNeeded, setBadgeSetupNeeded] = useState(false);
+  const [dailyLogError, setDailyLogError] = useState("");
 
   useEffect(() => {
     const loadWeight = async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
-      const [{ data, error: memberError }, { data: winnerRows, error: winnerError }, { data: challengeRows, error: challengeError }] = await Promise.all([
+      const [{ data, error: memberError }, { data: logRows, error: logError }] = await Promise.all([
         supabase.from("app_members").select("weight_kg, initial_weight_kg").eq("user_id", userData.user.id).maybeSingle(),
-        supabase.from("challenge_winners").select("challenge_id, badge_name, awarded_at").eq("user_id", userData.user.id).order("awarded_at", { ascending: false }),
-        supabase.from("challenges").select("id, title"),
+        supabase.from("daily_logs").select("*").eq("user_id", userData.user.id).order("log_date", { ascending: false }),
       ]);
 
-      if (memberError) {
-        setWeightError(memberError.message);
-        return;
+      if (memberError) setWeightError(memberError.message);
+      else {
+        setInitialWeight(data?.initial_weight_kg ? Number(data.initial_weight_kg) : null);
+        setCurrentWeight(data?.weight_kg ? Number(data.weight_kg) : null);
       }
-
-      setInitialWeight(data?.initial_weight_kg ? Number(data.initial_weight_kg) : null);
-      setCurrentWeight(data?.weight_kg ? Number(data.weight_kg) : null);
-
-      if (winnerError || challengeError) {
-        setBadgeSetupNeeded(true);
-        return;
-      }
-
-      const challengeNames = new Map((challengeRows ?? []).map((challenge) => [challenge.id, challenge.title]));
-      setBadges((winnerRows ?? []).map((winner) => ({
-        challengeId: winner.challenge_id,
-        badgeName: winner.badge_name,
-        challengeName: challengeNames.get(winner.challenge_id) ?? "Completed challenge",
-        awardedAt: winner.awarded_at,
-      })));
+      if (logError) setDailyLogError(logError.message);
+      else setDailyLogs((logRows ?? []).map((row) => mapDatabaseLog(row as Record<string, unknown>)));
     };
 
     void loadWeight();
@@ -72,12 +74,32 @@ export default function ProgressPage() {
 
       <section className="soft-card p-3 mt-4">
         <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
-          <h2 className="section-label mb-0">Earned badges</h2>
-          <span className="points-badge">{badges.length}</span>
+          <h2 className="section-label mb-0">Daily log</h2>
+          <span className="points-badge">{dailyLogs.length} days</span>
         </div>
-        {badges.length ? <div className="d-grid gap-3">{badges.map((badge) => <div key={`${badge.challengeId}-${badge.badgeName}`} className="list-surface d-flex align-items-center gap-3"><span className="fs-2">🏆</span><div><div className="fw-bold">{badge.badgeName}</div><small className="text-secondary">{badge.challengeName} · {new Date(badge.awardedAt).toLocaleDateString()}</small></div></div>)}</div> : <p className="text-secondary mb-0">{badgeSetupNeeded ? "Badge storage is not set up yet. Apply the challenge winners SQL migration." : "Challenge winner badges will appear here when you win."}</p>}
+        {dailyLogError ? <div className="alert alert-danger">Could not load daily logs: {dailyLogError}</div> : null}
+        {dailyLogs.length ? <div className="d-grid gap-3">{dailyLogs.map((log) => {
+          const details = [
+            ["Workout", `${log.workoutMinutes} min`],
+            ["Steps", log.steps.toLocaleString()],
+            ["Fruit", log.fruit || "Not logged"],
+            ["Vegetable", log.vegetable || "Not logged"],
+            ["Dessert", log.dessert || "None"],
+            ["Junk food", log.junkFood || "None"],
+            ["Water", `${log.waterMl.toLocaleString()} ml`],
+            ["Sleep", `${log.sleepHours.toFixed(1)} hr`],
+            ["Dine out", log.dineOut ? "Yes" : "No"],
+            ["Delivery", log.delivery ? "Yes" : "No"],
+          ];
+          return <article key={log.logDate} className="list-surface">
+            <div className="d-flex align-items-center justify-content-between gap-3">
+              <div><h3 className="h6 fw-bold mb-1">{new Date(`${log.logDate}T00:00:00`).toLocaleDateString()}</h3><small className="text-secondary">{log.dayCheckedIn ? "Checked in" : "Not checked in"}</small></div>
+              <div className="text-end"><div className="fw-bolder text-primary">{formatPoints(calculateDailyScore(log))}</div><small className="text-secondary">points</small></div>
+            </div>
+            <div className="row g-2 mt-2">{details.map(([label, value]) => <div key={label} className="col-6"><div className="d-flex justify-content-between gap-2 small"><span className="text-secondary">{label}</span><span className="fw-semibold text-end">{value}</span></div></div>)}</div>
+          </article>;
+        })}</div> : !dailyLogError ? <p className="text-secondary mb-0">No daily logs yet.</p> : null}
       </section>
-
     </AppShell>
   );
 }

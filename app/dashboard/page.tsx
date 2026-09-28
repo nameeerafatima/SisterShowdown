@@ -113,11 +113,6 @@ export default function DashboardPage() {
       </section>
 
       <section className="soft-card p-3 p-sm-4 mt-4">
-        <div className="d-flex justify-content-between align-items-center"><h2 className="section-label mb-0">Leaderboard</h2><span className="points-badge">{leaderboard.length} players</span></div>
-        <div className="d-grid gap-3 mt-3">{leaderboard.map((member) => <div key={member.user_id} className="list-surface d-flex justify-content-between align-items-center gap-3"><div className="d-flex align-items-center gap-3"><span className="fw-bold text-primary">#{member.rank}</span><span className="fw-bold">{member.display_name}{member.display_name === displayName ? " (You)" : ""}</span></div><span className="fw-bolder">{formatPoints(member.score)} pts</span></div>)}</div>
-      </section>
-
-      <section className="soft-card p-3 p-sm-4 mt-4">
         <div className="d-flex justify-content-between align-items-center"><h2 className="section-label mb-0">Today</h2><span className="points-badge bg-success-subtle text-success">Daily score</span></div>
         <div className="d-flex align-items-end gap-2 mt-3"><span className="score-large text-dark">{formatPoints(todayScore)}</span><span className="text-muted pb-1">points</span></div>
         <div className="d-grid gap-3 mt-4">{habitRows.map(([label, points, completed, detail]) => <div key={label} className="list-surface d-flex align-items-center justify-content-between gap-3"><div className="d-flex align-items-center gap-3"><span className="d-flex align-items-center justify-content-center rounded-3 bg-white border border-light-subtle" style={{ width: 42, height: 42, fontSize: 20 }}>{accents[label]}</span><div><div className="fw-bold">{label}</div><small className="text-secondary">{detail}</small></div></div><div className="text-end"><div className={`fw-bold ${points < 0 ? "text-danger" : "text-primary"}`}>{points > 0 ? "+" : ""}{formatPoints(points)}</div><Link href={`/log?category=${encodeURIComponent(label)}`} className="btn btn-dark btn-sm mt-2 rounded-pill px-3">{completed ? "✓ Update" : "Update"}</Link></div></div>)}</div>

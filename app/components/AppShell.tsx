@@ -78,15 +78,15 @@ export function AppShell({ title, subtitle, children, rightSlot }: AppShellProps
 
               if (item.href === "/log") {
                 return (
-                  <Link key={item.href} href={item.href} className="nav-pill primary">
-                    <span style={{ fontSize: 22 }}>{item.icon}</span>
+                  <Link key={item.href} href={item.href} className={`nav-pill nav-log${active ? " active" : ""}`} aria-current={active ? "page" : undefined}>
+                    <span className="nav-fab-icon" aria-hidden="true">{item.icon}</span>
                     <span>{item.label}</span>
                   </Link>
                 );
               }
 
               return (
-                <Link key={item.href} href={item.href} className={active ? "nav-pill active" : "nav-pill"}>
+                <Link key={item.href} href={item.href} className={active ? "nav-pill active" : "nav-pill"} aria-current={active ? "page" : undefined}>
                   <span style={{ fontSize: 18 }}>{item.icon}</span>
                   <span>{item.label}</span>
                 </Link>
