@@ -79,6 +79,11 @@ export default function DashboardPage() {
   const yourMember = leaderboard.find((member) => member.user_id === currentUserId);
   const leader = leaderboard[0];
   const pointsToLeader = leader && yourMember ? Number((leader.score - yourMember.score).toFixed(1)) : 0;
+  const streakDisplays: Array<{ label: string; rule: (log: DailyLog) => boolean }> = [
+    { label: "Workout", rule: streakRules.workout },
+    { label: "No delivery", rule: streakRules.noDelivery },
+    { label: "No dessert", rule: streakRules.noDessert },
+  ];
   const habitRows = [
     ["Workout", calculateDailyScore({ ...emptyDailyLog, workoutMinutes: savedLog.workoutMinutes }), savedLog.workoutMinutes > 0, savedLog.workoutMinutes ? `${savedLog.workoutMinutes} minutes` : "Not logged"],
     ["Steps", Math.floor(savedLog.steps / 1000), savedLog.steps > 0, `${savedLog.steps.toLocaleString()} steps`],
@@ -103,7 +108,7 @@ export default function DashboardPage() {
         </div>
         <div className="metric-box text-white fw-semibold">{pointsToLeader === 0 ? "You are leading or tied for the lead." : `${formatPoints(pointsToLeader)} points to the leader`}</div>
         <div className="row g-2 mt-2">
-          {[ ["Workout", streakRules.workout], ["No delivery", streakRules.noDelivery], ["No dessert", streakRules.noDessert] ].map(([label, rule]) => <div key={String(label)} className="col-4"><div className="metric-box text-white p-2"><span className="fs-5">🔥</span><div className="mt-2 small">{calculateStreak(history, rule as (log: DailyLog) => boolean)} day {label} streak</div></div></div>)}
+          {streakDisplays.map(({ label, rule }) => <div key={label} className="col-4"><div className="metric-box text-white p-2"><span className="fs-5">🔥</span><div className="mt-2 small">{calculateStreak(history, rule)} day {label} streak</div></div></div>)}
         </div>
       </section>
 
