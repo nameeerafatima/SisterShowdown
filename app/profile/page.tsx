@@ -11,6 +11,12 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [weight, setWeight] = useState("");
   const [weightMessage, setWeightMessage] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [competitionId, setCompetitionId] = useState("");
+  const [competitionName, setCompetitionName] = useState("December Wedding War");
+  const [competitionStart, setCompetitionStart] = useState("2026-09-28");
+  const [competitionEnd, setCompetitionEnd] = useState("2027-01-01");
+  const [competitionMessage, setCompetitionMessage] = useState("");
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -18,9 +24,19 @@ export default function ProfilePage() {
       if (!userData.user) return;
 
       setEmail(userData.user.email ?? "");
-      const { data: member } = await supabase.from("app_members").select("display_name, weight_kg, initial_weight_kg").eq("user_id", userData.user.id).maybeSingle();
+      const [{ data: member }, { data: competition }] = await Promise.all([
+        supabase.from("app_members").select("display_name, weight_kg, is_admin").eq("user_id", userData.user.id).maybeSingle(),
+        supabase.from("competitions").select("id, name, start_date, end_date").limit(1).maybeSingle(),
+      ]);
       setName(member?.display_name || userData.user.user_metadata?.display_name || userData.user.email?.split("@")[0] || "Member");
       setWeight(member?.weight_kg ? String(member.weight_kg) : "");
+      setIsAdmin(Boolean(member?.is_admin));
+      if (competition) {
+        setCompetitionId(competition.id);
+        setCompetitionName(competition.name);
+        setCompetitionStart(competition.start_date);
+        setCompetitionEnd(competition.end_date);
+      }
     };
 
     void loadProfile();
@@ -37,6 +53,12 @@ export default function ProfilePage() {
 
     const { error } = await supabase.from("app_members").update({ weight_kg: Number(weight) }).eq("user_id", userData.user.id);
     setWeightMessage(error ? error.message : "Weight updated");
+  };
+
+  const updateCompetition = async () => {
+    if (!isAdmin || !competitionId || competitionEnd < competitionStart) return;
+    const { error } = await supabase.from("competitions").update({ name: competitionName, start_date: competitionStart, end_date: competitionEnd, updated_at: new Date().toISOString() }).eq("id", competitionId);
+    setCompetitionMessage(error ? error.message : "Competition settings updated");
   };
 
   return (
@@ -65,10 +87,21 @@ export default function ProfilePage() {
         <section className="soft-card p-3">
           <h3 className="section-label mb-3">Competition</h3>
           <div className="d-grid gap-2 text-secondary">
-            <div><span className="fw-bold text-dark">Name:</span> December Wedding War</div>
-            <div><span className="fw-bold text-dark">Start:</span> September 28, 2026</div>
-            <div><span className="fw-bold text-dark">End:</span> January 1, 2027</div>
+            {isAdmin ? <>
+              <label className="form-label small mb-0">Name</label>
+              <input className="form-control" value={competitionName} onChange={(event) => setCompetitionName(event.target.value)} />
+              <label className="form-label small mb-0 mt-2">Start</label>
+              <input className="form-control" type="date" value={competitionStart} onChange={(event) => setCompetitionStart(event.target.value)} />
+              <label className="form-label small mb-0 mt-2">End</label>
+              <input className="form-control" type="date" min={competitionStart} value={competitionEnd} onChange={(event) => setCompetitionEnd(event.target.value)} />
+              <button className="btn btn-dark rounded-pill mt-2" onClick={updateCompetition}>Save competition</button>
+            </> : <>
+              <div><span className="fw-bold text-dark">Name:</span> {competitionName}</div>
+              <div><span className="fw-bold text-dark">Start:</span> {new Date(`${competitionStart}T00:00:00`).toLocaleDateString()}</div>
+              <div><span className="fw-bold text-dark">End:</span> {new Date(`${competitionEnd}T00:00:00`).toLocaleDateString()}</div>
+            </>}
           </div>
+          {competitionMessage ? <small className="text-secondary d-block mt-2">{competitionMessage}</small> : null}
         </section>
 
         <button className="btn btn-outline-danger btn-lg rounded-pill" onClick={handleSignOut}>

@@ -30,7 +30,13 @@ export default function LoginPage() {
     }
     if (data.user) {
       const displayName = data.user.user_metadata?.display_name || email.split("@")[0];
-      const { error: memberError } = await supabase.from("app_members").upsert({ user_id: data.user.id, display_name: displayName });
+      const { data: member, error: lookupError } = await supabase.from("app_members").select("user_id").eq("user_id", data.user.id).maybeSingle();
+      if (lookupError) {
+        setError(lookupError.message);
+        setLoading(false);
+        return;
+      }
+      const { error: memberError } = member ? { error: null } : await supabase.from("app_members").insert({ user_id: data.user.id, display_name: displayName });
       if (memberError) {
         setError(memberError.message);
         setLoading(false);

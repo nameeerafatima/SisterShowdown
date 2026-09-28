@@ -62,12 +62,9 @@ export function AppShell({ title, subtitle, children, rightSlot }: AppShellProps
             </div>
 
             {rightSlot ?? (
-              <div className="d-flex align-items-center gap-2">
-                <Link href="/profile" className="d-flex align-items-center justify-content-center rounded-circle bg-white border border-light shadow-sm" style={{ width: 42, height: 42, textDecoration: "none" }}>
-                  <span style={{ fontSize: 20 }}>👩‍💼</span>
-                </Link>
-                <button className="btn btn-sm btn-light rounded-pill" onClick={() => supabase.auth.signOut()} aria-label="Sign out">↪</button>
-              </div>
+              <Link href="/profile" className="d-flex align-items-center justify-content-center rounded-circle bg-white border border-light shadow-sm" style={{ width: 42, height: 42, textDecoration: "none" }} aria-label="Profile">
+                <span style={{ fontSize: 20 }}>👩‍💼</span>
+              </Link>
             )}
           </div>
         </header>
