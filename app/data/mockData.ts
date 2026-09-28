@@ -1,5 +1,5 @@
 export const competition = {
-  name: "December Wedding War",
+  name: "Year End Challenge",
   daysLeft: 72,
   leaderboard: {
     you: 487,

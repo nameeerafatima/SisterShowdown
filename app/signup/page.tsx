@@ -41,7 +41,7 @@ export default function SignupPage() {
   return (
     <main className="app-shell d-flex align-items-center justify-content-center px-3 py-5">
       <div className="app-phone p-4"><section className="soft-card p-4 p-sm-5">
-        <p className="section-label text-primary mb-2">Sister Showdown</p>
+        <p className="section-label text-primary mb-2">Ultimate Showdown</p>
         <h1 className="h2 fw-bolder mb-2">Create your account</h1>
         <p className="text-secondary mb-4">Make a private account for the challenge.</p>
         <form className="d-grid gap-3" onSubmit={handleSubmit}>

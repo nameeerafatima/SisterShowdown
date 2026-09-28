@@ -56,7 +56,7 @@ export function AppShell({ title, subtitle, children, rightSlot }: AppShellProps
         <header className="px-3 py-3 border-bottom border-light-subtle bg-transparent">
           <div className="d-flex align-items-center justify-content-between gap-3">
             <div>
-              <p className="section-label mb-1">Sister Showdown</p>
+              <p className="section-label mb-1">Ultimate Showdown</p>
               {title ? <h1 className="h4 fw-bolder mb-1">{title}</h1> : <div className="placeholder-glow"><span className="placeholder col-6 rounded-pill" /></div>}
               {subtitle ? <small className="text-secondary">{subtitle}</small> : null}
             </div>

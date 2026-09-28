@@ -13,7 +13,6 @@ export default function ProfilePage() {
   const [weightMessage, setWeightMessage] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [competitionId, setCompetitionId] = useState("");
-  const [competitionName, setCompetitionName] = useState("December Wedding War");
   const [competitionStart, setCompetitionStart] = useState("2026-09-28");
   const [competitionEnd, setCompetitionEnd] = useState("2027-01-01");
   const [competitionMessage, setCompetitionMessage] = useState("");
@@ -26,14 +25,13 @@ export default function ProfilePage() {
       setEmail(userData.user.email ?? "");
       const [{ data: member }, { data: competition }] = await Promise.all([
         supabase.from("app_members").select("display_name, weight_kg, is_admin").eq("user_id", userData.user.id).maybeSingle(),
-        supabase.from("competitions").select("id, name, start_date, end_date").limit(1).maybeSingle(),
+        supabase.from("competitions").select("id, start_date, end_date").limit(1).maybeSingle(),
       ]);
       setName(member?.display_name || userData.user.user_metadata?.display_name || userData.user.email?.split("@")[0] || "Member");
       setWeight(member?.weight_kg ? String(member.weight_kg) : "");
       setIsAdmin(Boolean(member?.is_admin));
       if (competition) {
         setCompetitionId(competition.id);
-        setCompetitionName(competition.name);
         setCompetitionStart(competition.start_date);
         setCompetitionEnd(competition.end_date);
       }
@@ -57,12 +55,12 @@ export default function ProfilePage() {
 
   const updateCompetition = async () => {
     if (!isAdmin || !competitionId || competitionEnd < competitionStart) return;
-    const { error } = await supabase.from("competitions").update({ name: competitionName, start_date: competitionStart, end_date: competitionEnd, updated_at: new Date().toISOString() }).eq("id", competitionId);
+    const { error } = await supabase.from("competitions").update({ start_date: competitionStart, end_date: competitionEnd, updated_at: new Date().toISOString() }).eq("id", competitionId);
     setCompetitionMessage(error ? error.message : "Competition settings updated");
   };
 
   return (
-    <AppShell title={name} subtitle="Your sister showdown setup">
+    <AppShell title={name} subtitle="Your Ultimate Showdown setup">
       <div className="d-grid gap-4">
         <section className="soft-card p-3">
           <div className="d-flex align-items-center gap-3">
@@ -87,16 +85,14 @@ export default function ProfilePage() {
         <section className="soft-card p-3">
           <h3 className="section-label mb-3">Competition</h3>
           <div className="d-grid gap-2 text-secondary">
+            <div><span className="fw-bold text-dark">Name:</span> Year End Challenge</div>
             {isAdmin ? <>
-              <label className="form-label small mb-0">Name</label>
-              <input className="form-control" value={competitionName} onChange={(event) => setCompetitionName(event.target.value)} />
               <label className="form-label small mb-0 mt-2">Start</label>
               <input className="form-control" type="date" value={competitionStart} onChange={(event) => setCompetitionStart(event.target.value)} />
               <label className="form-label small mb-0 mt-2">End</label>
               <input className="form-control" type="date" min={competitionStart} value={competitionEnd} onChange={(event) => setCompetitionEnd(event.target.value)} />
               <button className="btn btn-dark rounded-pill mt-2" onClick={updateCompetition}>Save competition</button>
             </> : <>
-              <div><span className="fw-bold text-dark">Name:</span> {competitionName}</div>
               <div><span className="fw-bold text-dark">Start:</span> {new Date(`${competitionStart}T00:00:00`).toLocaleDateString()}</div>
               <div><span className="fw-bold text-dark">End:</span> {new Date(`${competitionEnd}T00:00:00`).toLocaleDateString()}</div>
             </>}

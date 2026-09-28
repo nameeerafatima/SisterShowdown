@@ -28,7 +28,6 @@ function scoreTotal(logs: DailyLog[]) {
 export default function DashboardPage() {
   const [displayName, setDisplayName] = useState("Member");
   const [currentUserId, setCurrentUserId] = useState("");
-  const [competitionName, setCompetitionName] = useState("Competition");
   const [savedLog, setSavedLog] = useState<DailyLog>({ ...emptyDailyLog });
   const [history, setHistory] = useState<DailyLog[]>([]);
   const [leaderboard, setLeaderboard] = useState<RankedMember[]>([]);
@@ -42,7 +41,7 @@ export default function DashboardPage() {
       const [{ data: memberRows, error: memberError }, { data: logRows, error: logError }, { data: competitionRow, error: competitionError }] = await Promise.all([
         supabase.from("app_members").select("user_id, display_name"),
         supabase.from("daily_logs").select("*").order("log_date", { ascending: true }),
-        supabase.from("competitions").select("name, start_date, end_date").limit(1).maybeSingle(),
+        supabase.from("competitions").select("start_date, end_date").limit(1).maybeSingle(),
       ]);
       if (memberError || logError || competitionError) {
         setError(memberError?.message ?? logError?.message ?? competitionError?.message ?? "Could not load leaderboard");
@@ -54,8 +53,6 @@ export default function DashboardPage() {
       setCurrentUserId(userData.user.id);
       const currentMember = members.find((member) => member.user_id === userData.user.id);
       setDisplayName(currentMember?.display_name || userData.user.user_metadata?.display_name || userData.user.email?.split("@")[0] || "Member");
-      setCompetitionName(competitionRow?.name ?? "Competition");
-
       const startDate = competitionRow?.start_date ?? "0000-01-01";
       const endDate = competitionRow?.end_date ?? "9999-12-31";
       const scopedLogs = logs.filter((row) => row.log_date >= startDate && row.log_date <= endDate);
@@ -76,6 +73,7 @@ export default function DashboardPage() {
   }, []);
 
   const todayScore = calculateDailyScore(savedLog);
+  const competitionName = "Year End Challenge";
   const yourMember = leaderboard.find((member) => member.user_id === currentUserId);
   const leader = leaderboard[0];
   const pointsToLeader = leader && yourMember ? Number((leader.score - yourMember.score).toFixed(1)) : 0;

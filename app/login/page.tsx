@@ -49,7 +49,7 @@ export default function LoginPage() {
   return (
     <main className="app-shell d-flex align-items-center justify-content-center px-3 py-5">
       <div className="app-phone p-4"><section className="soft-card p-4 p-sm-5">
-        <p className="section-label text-primary mb-2">Sister Showdown</p>
+        <p className="section-label text-primary mb-2">Ultimate Showdown</p>
         <h1 className="h2 fw-bolder mb-2">Welcome back</h1>
         <p className="text-secondary mb-4">Sign in to continue your shared challenge.</p>
         <form className="d-grid gap-3" onSubmit={handleSubmit}>
