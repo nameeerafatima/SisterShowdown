@@ -14,7 +14,8 @@ export default function ProgressPage() {
   const [initialWeight, setInitialWeight] = useState<number | null>(null);
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [badges, setBadges] = useState<EarnedBadge[]>([]);
-  const [error, setError] = useState("");
+  const [weightError, setWeightError] = useState("");
+  const [badgeSetupNeeded, setBadgeSetupNeeded] = useState(false);
 
   useEffect(() => {
     const loadWeight = async () => {
@@ -27,13 +28,19 @@ export default function ProgressPage() {
         supabase.from("challenges").select("id, title"),
       ]);
 
-      if (memberError || winnerError || challengeError) {
-        setError(memberError?.message ?? winnerError?.message ?? challengeError?.message ?? "Could not load progress");
+      if (memberError) {
+        setWeightError(memberError.message);
         return;
       }
 
       setInitialWeight(data?.initial_weight_kg ? Number(data.initial_weight_kg) : null);
       setCurrentWeight(data?.weight_kg ? Number(data.weight_kg) : null);
+
+      if (winnerError || challengeError) {
+        setBadgeSetupNeeded(true);
+        return;
+      }
+
       const challengeNames = new Map((challengeRows ?? []).map((challenge) => [challenge.id, challenge.title]));
       setBadges((winnerRows ?? []).map((winner) => ({
         challengeId: winner.challenge_id,
@@ -60,7 +67,7 @@ export default function ProgressPage() {
         <div className="mt-4 rounded-4 p-3 text-center" style={{ background: "linear-gradient(180deg, #f5f3ff 0%, #fff7fb 100%)" }}>
           {currentWeight === null ? "Add your weight from Profile to start tracking." : "Your current weight is live from your profile."}
         </div>
-        {error ? <div className="alert alert-danger mt-3 mb-0">Could not load weight: {error}</div> : null}
+        {weightError ? <div className="alert alert-danger mt-3 mb-0">Could not load weight: {weightError}</div> : null}
       </section>
 
       <section className="soft-card p-3 mt-4">
@@ -68,7 +75,7 @@ export default function ProgressPage() {
           <h2 className="section-label mb-0">Earned badges</h2>
           <span className="points-badge">{badges.length}</span>
         </div>
-        {badges.length ? <div className="d-grid gap-3">{badges.map((badge) => <div key={`${badge.challengeId}-${badge.badgeName}`} className="list-surface d-flex align-items-center gap-3"><span className="fs-2">🏆</span><div><div className="fw-bold">{badge.badgeName}</div><small className="text-secondary">{badge.challengeName} · {new Date(badge.awardedAt).toLocaleDateString()}</small></div></div>)}</div> : <p className="text-secondary mb-0">Challenge winner badges will appear here when you win.</p>}
+        {badges.length ? <div className="d-grid gap-3">{badges.map((badge) => <div key={`${badge.challengeId}-${badge.badgeName}`} className="list-surface d-flex align-items-center gap-3"><span className="fs-2">🏆</span><div><div className="fw-bold">{badge.badgeName}</div><small className="text-secondary">{badge.challengeName} · {new Date(badge.awardedAt).toLocaleDateString()}</small></div></div>)}</div> : <p className="text-secondary mb-0">{badgeSetupNeeded ? "Badge storage is not set up yet. Apply the challenge winners SQL migration." : "Challenge winner badges will appear here when you win."}</p>}
       </section>
 
     </AppShell>
