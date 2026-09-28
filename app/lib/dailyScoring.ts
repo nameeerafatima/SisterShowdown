@@ -42,11 +42,11 @@ export function calculateStepPoints(steps: number) {
 }
 
 export function calculateFruitPoints(fruit: string | null | undefined) {
-  return fruit && fruit.trim() ? 1 : 0;
+  return fruit?.split(",").filter((item) => item.trim()).length ?? 0;
 }
 
 export function calculateVegetablePoints(vegetable: string | null | undefined) {
-  return vegetable && vegetable.trim() ? 1 : 0;
+  return vegetable?.split(",").filter((item) => item.trim()).length ?? 0;
 }
 
 export function calculateDessertPoints(dessert: string | null | undefined) {

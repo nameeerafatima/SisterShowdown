@@ -9,8 +9,8 @@ import { calculateDailyScore, calculateStreak, emptyDailyLog, streakRules, type 
 const habits = [
   { emoji: "🏋️", title: "Workout", points: "+3 per hour", accent: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" },
   { emoji: "🚶", title: "Steps", points: "+1 per 1k", accent: "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)" },
-  { emoji: "🍏", title: "Fruit", points: "+1", accent: "linear-gradient(135deg, #fb7185 0%, #f97316 100%)" },
-  { emoji: "🥦", title: "Vegetable", points: "+1", accent: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)" },
+  { emoji: "🍏", title: "Fruit", points: "+1 per item", accent: "linear-gradient(135deg, #fb7185 0%, #f97316 100%)" },
+  { emoji: "🥦", title: "Vegetable", points: "+1 per item", accent: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)" },
   { emoji: "🍰", title: "Dessert", points: "-2", accent: "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)" },
   { emoji: "🍟", title: "Junk Food", points: "-1", accent: "linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)" },
   { emoji: "💧", title: "Water", points: "+1 for 3L+", accent: "linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)" },

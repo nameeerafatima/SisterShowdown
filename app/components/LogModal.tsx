@@ -28,8 +28,8 @@ type LogModalProps = {
 const categoryConfig: Record<string, { title: string; inputLabel: string; placeholder: string; type: "minutes" | "steps" | "text" | "water" | "sleep" | "toggle" }> = {
   Workout: { title: "Workout", inputLabel: "Duration", placeholder: "01:30", type: "minutes" },
   Steps: { title: "Steps", inputLabel: "Daily steps", placeholder: "8500", type: "steps" },
-  Fruit: { title: "Fruit", inputLabel: "Fruit you ate (separate with commas)", placeholder: "Apple, banana", type: "text" },
-  Vegetable: { title: "Vegetable", inputLabel: "Vegetables you ate (separate with commas)", placeholder: "Broccoli, carrots", type: "text" },
+  Fruit: { title: "Fruit", inputLabel: "Add a fruit", placeholder: "Apple", type: "text" },
+  Vegetable: { title: "Vegetable", inputLabel: "Add a vegetable", placeholder: "Broccoli", type: "text" },
   Dessert: { title: "Dessert", inputLabel: "What dessert did you have?", placeholder: "Cake", type: "text" },
   "Junk Food": { title: "Junk Food", inputLabel: "What junk food did you eat?", placeholder: "Fries", type: "text" },
   Water: { title: "Water", inputLabel: "Water amount (ml)", placeholder: "3000", type: "water" },
@@ -108,7 +108,7 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
           : category === "Dessert" ? values.dessert
             : category === "Junk Food" ? values.junkFood
               : "";
-      setInputText(categoryText);
+      setInputText(category === "Fruit" || category === "Vegetable" ? "" : categoryText);
     }, 0);
 
     return () => window.clearTimeout(resetTimer);
@@ -200,7 +200,28 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
     onClose();
   };
 
+  const addFoodItem = () => {
+    const newItems = inputText.split(",").map((item) => item.trim()).filter(Boolean);
+    if (!newItems.length) return;
+
+    setForm((current) => {
+      const existing = (category === "Fruit" ? current.fruit : current.vegetable).split(",").map((item) => item.trim()).filter(Boolean);
+      const items = [...existing, ...newItems].join(", ");
+      return category === "Fruit" ? { ...current, fruit: items } : { ...current, vegetable: items };
+    });
+    setInputText("");
+  };
+
+  const removeFoodItem = (indexToRemove: number) => {
+    setForm((current) => {
+      const currentItems = (category === "Fruit" ? current.fruit : current.vegetable).split(",").map((item) => item.trim()).filter(Boolean);
+      const items = currentItems.filter((_, index) => index !== indexToRemove).join(", ");
+      return category === "Fruit" ? { ...current, fruit: items } : { ...current, vegetable: items };
+    });
+  };
+
   const workoutParts = getWorkoutParts(form.workoutMinutes);
+  const foodItems = (category === "Fruit" ? form.fruit : form.vegetable).split(",").map((item) => item.trim()).filter(Boolean);
 
   const handleWorkoutTimeChange = (segment: "hours" | "minutes", nextValue: number) => {
     const nextHours = segment === "hours" ? nextValue : workoutParts.hours;
@@ -253,18 +274,23 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
         ) : category === "Fruit" || category === "Vegetable" ? (
           <>
             <label className="form-label fw-semibold" htmlFor="food-items">{config.inputLabel}</label>
-            <textarea
-              id="food-items"
-              className="form-control form-control-lg rounded-3"
-              rows={2}
-              value={inputText}
-              onChange={(event) => {
-                const value = event.target.value;
-                setInputText(value);
-                applyValue(value);
-              }}
-              placeholder={config.placeholder}
-            />
+            <div className="input-group">
+              <input
+                id="food-items"
+                className="form-control form-control-lg"
+                value={inputText}
+                onChange={(event) => setInputText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addFoodItem();
+                  }
+                }}
+                placeholder={config.placeholder}
+              />
+              <button className="btn btn-dark" type="button" onClick={addFoodItem} disabled={!inputText.trim()}>Add</button>
+            </div>
+            {foodItems.length ? <ul className="list-group list-group-flush mt-3">{foodItems.map((item, index) => <li key={`${item}-${index}`} className="list-group-item d-flex align-items-center justify-content-between gap-3 px-0"><span className="flex-grow-1">{item}</span><span className="text-success fw-semibold">+1 pt</span><button className="btn btn-sm btn-outline-danger rounded-circle d-flex align-items-center justify-content-center" type="button" style={{ width: 32, height: 32 }} onClick={() => removeFoodItem(index)} aria-label={`Remove ${item}`}>-</button></li>)}</ul> : null}
           </>
         ) : (
           <>
@@ -297,7 +323,7 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
 
         <div className="d-grid gap-2 mt-4">
           <button className="btn btn-primary-soft btn-lg rounded-pill" onClick={handleSubmit}>
-            Save
+            {category === "Fruit" || category === "Vegetable" ? "Done" : "Save"}
           </button>
           <button className="btn btn-muted btn-lg rounded-pill" onClick={onClose}>
             Cancel
