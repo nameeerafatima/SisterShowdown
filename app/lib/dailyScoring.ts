@@ -38,7 +38,7 @@ export function calculateWorkoutPoints(minutes: number) {
 
 export function calculateStepPoints(steps: number) {
   if (!Number.isFinite(steps) || steps <= 0) return 0;
-  return Math.floor(steps / 1000);
+  return Number((steps / 1000).toFixed(1));
 }
 
 export function calculateFruitPoints(fruit: string | null | undefined) {

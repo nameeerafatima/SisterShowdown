@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
 import { supabase } from "@/app/lib/supabase";
-import { calculateDailyScore, formatPoints, type DailyLog } from "@/app/lib/dailyScoring";
+import { calculateDailyScore, calculateDeliveryPoints, calculateDessertPoints, calculateDineOutPoints, calculateFruitPoints, calculateJunkFoodPoints, calculateSleepPoints, calculateStepPoints, calculateVegetablePoints, calculateWaterPoints, calculateWorkoutPoints, formatPoints, type DailyLog } from "@/app/lib/dailyScoring";
 
 type Member = { user_id: string; display_name: string };
 type LogWithUser = DailyLog & { userId: string };
@@ -30,13 +30,28 @@ function recentWeekStart() {
   return date.toISOString().slice(0, 10);
 }
 
-function activityFor(log: LogWithUser, name: string): Activity {
-  const score = calculateDailyScore(log);
-  if (log.workoutMinutes > 0) return { date: log.logDate, emoji: "🏋️", text: `${name} logged a ${log.workoutMinutes}-minute workout`, points: Number(((log.workoutMinutes / 60) * 3).toFixed(1)) };
-  if (log.steps > 0) return { date: log.logDate, emoji: "🚶", text: `${name} logged ${log.steps.toLocaleString()} steps`, points: Math.floor(log.steps / 1000) };
-  if (log.delivery) return { date: log.logDate, emoji: "🛵", text: `${name} logged delivery`, points: -1 };
-  if (log.dessert) return { date: log.logDate, emoji: "🍰", text: `${name} logged dessert`, points: -2 };
-  return { date: log.logDate, emoji: "✅", text: `${name} checked in`, points: score };
+function splitItems(value: string) {
+  return value.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean);
+}
+
+function activitiesFor(log: LogWithUser, name: string): Activity[] {
+  const activities: Activity[] = [];
+  if (log.workoutMinutes > 0) activities.push({ date: log.logDate, emoji: "🏋️", text: `${name} logged a ${log.workoutMinutes}-minute workout`, points: calculateWorkoutPoints(log.workoutMinutes) });
+  if (log.steps > 0) activities.push({ date: log.logDate, emoji: "🚶", text: `${name} walked ${log.steps.toLocaleString()} steps`, points: calculateStepPoints(log.steps) });
+
+  const fruits = splitItems(log.fruit);
+  if (fruits.length) activities.push({ date: log.logDate, emoji: "🍎", text: `${name} logged fruit: ${fruits.join(", ")}`, points: calculateFruitPoints(log.fruit) });
+  const vegetables = splitItems(log.vegetable);
+  if (vegetables.length) activities.push({ date: log.logDate, emoji: "🥦", text: `${name} logged vegetables: ${vegetables.join(", ")}`, points: calculateVegetablePoints(log.vegetable) });
+
+  if (log.dessert) activities.push({ date: log.logDate, emoji: "🍰", text: `${name} logged dessert: ${log.dessert}`, points: calculateDessertPoints(log.dessert) });
+  if (log.junkFood) activities.push({ date: log.logDate, emoji: "🍟", text: `${name} logged junk food: ${log.junkFood}`, points: calculateJunkFoodPoints(log.junkFood) });
+  if (log.waterMl > 0) activities.push({ date: log.logDate, emoji: "💧", text: `${name} drank ${log.waterMl.toLocaleString()} ml of water`, points: calculateWaterPoints(log.waterMl) });
+  if (log.sleepHours > 0) activities.push({ date: log.logDate, emoji: "😴", text: `${name} logged ${formatPoints(log.sleepHours)} hours of sleep`, points: calculateSleepPoints(log.sleepHours) });
+  if (log.dineOut) activities.push({ date: log.logDate, emoji: "🍽️", text: `${name} dined out`, points: calculateDineOutPoints(log.dineOut) });
+  if (log.delivery) activities.push({ date: log.logDate, emoji: "🛵", text: `${name} ordered delivery`, points: calculateDeliveryPoints(log.delivery) });
+  if (log.dayCheckedIn) activities.push({ date: log.logDate, emoji: "✅", text: `${name} checked in`, points: 0 });
+  return activities;
 }
 
 export default function BattlePage() {
@@ -72,7 +87,7 @@ export default function BattlePage() {
       }).sort((first, second) => second.score - first.score || first.display_name.localeCompare(second.display_name));
       setLeaderboard(standings.map((member, index) => ({ ...member, rank: index + 1 })));
       const names = new Map(members.map((member) => [member.user_id, member.display_name]));
-      setActivities(logs.filter((log) => log.dayCheckedIn).slice(0, 8).map((log) => activityFor(log, names.get(log.userId) ?? "Member")));
+      setActivities(logs.flatMap((log) => activitiesFor(log, names.get(log.userId) ?? "Member")).slice(0, 12));
     };
 
     void loadBattle();
@@ -96,7 +111,7 @@ export default function BattlePage() {
         <div className="d-grid gap-3 mt-3">{leaderboard.map((member) => <div key={member.user_id} className={`list-surface d-flex align-items-center justify-content-between gap-3 ${member.user_id === currentUserId ? "border border-primary" : ""}`}><div className="d-flex align-items-center gap-3"><span>{member.rank === 1 ? "🥇" : member.rank === 2 ? "🥈" : member.rank === 3 ? "🥉" : `#${member.rank}`}</span><div><div className="fw-bold">{member.display_name}{member.user_id === currentUserId ? " (You)" : ""}</div><small className="text-secondary">Last 7 days: {formatPoints(member.weeklyScore)}</small></div></div><span className="fw-bolder">{formatPoints(member.score)} pts</span></div>)}</div>
       </section>
 
-      <section className="soft-card p-3 mt-4"><h2 className="section-label mb-3">Recent activity</h2><div className="d-grid gap-3">{activities.length ? activities.map((activity, index) => <div key={`${activity.date}-${index}`} className="list-surface d-flex align-items-start gap-3"><span className="fs-5">{activity.emoji}</span><div className="flex-grow-1"><div className="fw-semibold">{activity.text}</div><small className="text-secondary">{activity.date}</small><div className={`fw-bold ${activity.points < 0 ? "text-danger" : "text-primary"}`}>{activity.points > 0 ? "+" : ""}{formatPoints(activity.points)} points</div></div></div>) : <p className="text-secondary mb-0">No checked-in activity yet.</p>}</div></section>
+      <section className="soft-card p-3 mt-4"><h2 className="section-label mb-3">Recent activity</h2><div className="d-grid gap-3">{activities.length ? activities.map((activity, index) => <div key={`${activity.date}-${index}`} className="list-surface d-flex align-items-start gap-3"><span className="fs-5">{activity.emoji}</span><div className="flex-grow-1"><div className="fw-semibold">{activity.text}</div><small className="text-secondary">{activity.date}</small><div className={`fw-bold ${activity.points < 0 ? "text-danger" : "text-primary"}`}>{activity.points > 0 ? "+" : ""}{formatPoints(activity.points)} points</div></div></div>) : <p className="text-secondary mb-0">No activity logged yet.</p>}</div></section>
     </AppShell>
   );
 }

@@ -28,8 +28,8 @@ type LogModalProps = {
 const categoryConfig: Record<string, { title: string; inputLabel: string; placeholder: string; type: "minutes" | "steps" | "text" | "water" | "sleep" | "toggle" }> = {
   Workout: { title: "Workout", inputLabel: "Duration", placeholder: "01:30", type: "minutes" },
   Steps: { title: "Steps", inputLabel: "Daily steps", placeholder: "8500", type: "steps" },
-  Fruit: { title: "Fruit", inputLabel: "Fruit you ate", placeholder: "Apple", type: "text" },
-  Vegetable: { title: "Vegetable", inputLabel: "Vegetable you ate", placeholder: "Broccoli", type: "text" },
+  Fruit: { title: "Fruit", inputLabel: "Fruit you ate (separate with commas)", placeholder: "Apple, banana", type: "text" },
+  Vegetable: { title: "Vegetable", inputLabel: "Vegetables you ate (separate with commas)", placeholder: "Broccoli, carrots", type: "text" },
   Dessert: { title: "Dessert", inputLabel: "What dessert did you have?", placeholder: "Cake", type: "text" },
   "Junk Food": { title: "Junk Food", inputLabel: "What junk food did you eat?", placeholder: "Fries", type: "text" },
   Water: { title: "Water", inputLabel: "Water amount (ml)", placeholder: "3000", type: "water" },
@@ -102,7 +102,13 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
 
     const resetTimer = window.setTimeout(() => {
       setForm(initialValues ?? defaultState());
-      setInputText("");
+      const values = initialValues ?? defaultState();
+      const categoryText = category === "Fruit" ? values.fruit
+        : category === "Vegetable" ? values.vegetable
+          : category === "Dessert" ? values.dessert
+            : category === "Junk Food" ? values.junkFood
+              : "";
+      setInputText(categoryText);
     }, 0);
 
     return () => window.clearTimeout(resetTimer);
@@ -244,6 +250,22 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
             />
             <label className="form-check-label" htmlFor={`toggle-${category}`}>{config.inputLabel}</label>
           </div>
+        ) : category === "Fruit" || category === "Vegetable" ? (
+          <>
+            <label className="form-label fw-semibold" htmlFor="food-items">{config.inputLabel}</label>
+            <textarea
+              id="food-items"
+              className="form-control form-control-lg rounded-3"
+              rows={2}
+              value={inputText}
+              onChange={(event) => {
+                const value = event.target.value;
+                setInputText(value);
+                applyValue(value);
+              }}
+              placeholder={config.placeholder}
+            />
+          </>
         ) : (
           <>
             <label className="form-label fw-semibold">{config.inputLabel}</label>

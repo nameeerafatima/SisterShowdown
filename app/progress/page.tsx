@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
 import { supabase } from "@/app/lib/supabase";
 
+type EarnedBadge = { challengeId: string; badgeName: string; challengeName: string; awardedAt: string };
+
 function formatWeight(value: number | null) {
   return value === null ? "--" : value.toFixed(1);
 }
@@ -11,6 +13,7 @@ function formatWeight(value: number | null) {
 export default function ProgressPage() {
   const [initialWeight, setInitialWeight] = useState<number | null>(null);
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
+  const [badges, setBadges] = useState<EarnedBadge[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -18,19 +21,26 @@ export default function ProgressPage() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
-      const { data, error: memberError } = await supabase
-        .from("app_members")
-        .select("weight_kg, initial_weight_kg")
-        .eq("user_id", userData.user.id)
-        .maybeSingle();
+      const [{ data, error: memberError }, { data: winnerRows, error: winnerError }, { data: challengeRows, error: challengeError }] = await Promise.all([
+        supabase.from("app_members").select("weight_kg, initial_weight_kg").eq("user_id", userData.user.id).maybeSingle(),
+        supabase.from("challenge_winners").select("challenge_id, badge_name, awarded_at").eq("user_id", userData.user.id).order("awarded_at", { ascending: false }),
+        supabase.from("challenges").select("id, title"),
+      ]);
 
-      if (memberError) {
-        setError(memberError.message);
+      if (memberError || winnerError || challengeError) {
+        setError(memberError?.message ?? winnerError?.message ?? challengeError?.message ?? "Could not load progress");
         return;
       }
 
       setInitialWeight(data?.initial_weight_kg ? Number(data.initial_weight_kg) : null);
       setCurrentWeight(data?.weight_kg ? Number(data.weight_kg) : null);
+      const challengeNames = new Map((challengeRows ?? []).map((challenge) => [challenge.id, challenge.title]));
+      setBadges((winnerRows ?? []).map((winner) => ({
+        challengeId: winner.challenge_id,
+        badgeName: winner.badge_name,
+        challengeName: challengeNames.get(winner.challenge_id) ?? "Completed challenge",
+        awardedAt: winner.awarded_at,
+      })));
     };
 
     void loadWeight();
@@ -51,6 +61,14 @@ export default function ProgressPage() {
           {currentWeight === null ? "Add your weight from Profile to start tracking." : "Your current weight is live from your profile."}
         </div>
         {error ? <div className="alert alert-danger mt-3 mb-0">Could not load weight: {error}</div> : null}
+      </section>
+
+      <section className="soft-card p-3 mt-4">
+        <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
+          <h2 className="section-label mb-0">Earned badges</h2>
+          <span className="points-badge">{badges.length}</span>
+        </div>
+        {badges.length ? <div className="d-grid gap-3">{badges.map((badge) => <div key={`${badge.challengeId}-${badge.badgeName}`} className="list-surface d-flex align-items-center gap-3"><span className="fs-2">🏆</span><div><div className="fw-bold">{badge.badgeName}</div><small className="text-secondary">{badge.challengeName} · {new Date(badge.awardedAt).toLocaleDateString()}</small></div></div>)}</div> : <p className="text-secondary mb-0">Challenge winner badges will appear here when you win.</p>}
       </section>
 
     </AppShell>
