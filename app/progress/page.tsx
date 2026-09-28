@@ -26,6 +26,21 @@ function formatWeight(value: number | null) {
   return value === null ? "--" : value.toFixed(1);
 }
 
+function getLogDetails(log: DailyLog) {
+  const details: Array<[string, string]> = [];
+  if (log.workoutMinutes > 0) details.push(["Workout", `${log.workoutMinutes} min`]);
+  if (log.steps > 0) details.push(["Steps", log.steps.toLocaleString()]);
+  if (log.fruit.trim()) details.push(["Fruit", log.fruit]);
+  if (log.vegetable.trim()) details.push(["Vegetable", log.vegetable]);
+  if (log.dessert.trim()) details.push(["Dessert", log.dessert]);
+  if (log.junkFood.trim()) details.push(["Junk food", log.junkFood]);
+  if (log.waterMl > 0) details.push(["Water", `${log.waterMl.toLocaleString()} ml`]);
+  if (log.sleepHours > 0) details.push(["Sleep", `${log.sleepHours.toFixed(1)} hr`]);
+  if (log.dineOut) details.push(["Dine out", "Logged"]);
+  if (log.delivery) details.push(["Delivery", "Logged"]);
+  return details;
+}
+
 export default function ProgressPage() {
   const [initialWeight, setInitialWeight] = useState<number | null>(null);
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
@@ -57,6 +72,7 @@ export default function ProgressPage() {
 
   const change = initialWeight !== null && currentWeight !== null ? Number((currentWeight - initialWeight).toFixed(1)) : null;
   const changeLabel = change === null ? "--" : change > 0 ? `+${change.toFixed(1)}` : change.toFixed(1);
+  const loggedDays = dailyLogs.filter((log) => log.dayCheckedIn || getLogDetails(log).length > 0);
 
   return (
     <AppShell title="Progress" subtitle="Your growth story">
@@ -75,30 +91,19 @@ export default function ProgressPage() {
       <section className="soft-card p-3 mt-4">
         <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
           <h2 className="section-label mb-0">Daily log</h2>
-          <span className="points-badge">{dailyLogs.length} days</span>
+          <span className="points-badge">{loggedDays.length} {loggedDays.length === 1 ? "day" : "days"}</span>
         </div>
         {dailyLogError ? <div className="alert alert-danger">Could not load daily logs: {dailyLogError}</div> : null}
-        {dailyLogs.length ? <div className="d-grid gap-3">{dailyLogs.map((log) => {
-          const details = [
-            ["Workout", `${log.workoutMinutes} min`],
-            ["Steps", log.steps.toLocaleString()],
-            ["Fruit", log.fruit || "Not logged"],
-            ["Vegetable", log.vegetable || "Not logged"],
-            ["Dessert", log.dessert || "None"],
-            ["Junk food", log.junkFood || "None"],
-            ["Water", `${log.waterMl.toLocaleString()} ml`],
-            ["Sleep", `${log.sleepHours.toFixed(1)} hr`],
-            ["Dine out", log.dineOut ? "Yes" : "No"],
-            ["Delivery", log.delivery ? "Yes" : "No"],
-          ];
-          return <article key={log.logDate} className="list-surface">
+        {loggedDays.length ? <div className="d-grid gap-3">{loggedDays.map((log) => {
+          const details = getLogDetails(log);
+          return <article key={log.logDate} className="border rounded-3 bg-white p-3">
             <div className="d-flex align-items-center justify-content-between gap-3">
-              <div><h3 className="h6 fw-bold mb-1">{new Date(`${log.logDate}T00:00:00`).toLocaleDateString()}</h3><small className="text-secondary">{log.dayCheckedIn ? "Checked in" : "Not checked in"}</small></div>
-              <div className="text-end"><div className="fw-bolder text-primary">{formatPoints(calculateDailyScore(log))}</div><small className="text-secondary">points</small></div>
+              <div><h3 className="h6 fw-bold mb-1">{new Date(`${log.logDate}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</h3><small className={log.dayCheckedIn ? "text-success fw-semibold" : "text-secondary"}>{log.dayCheckedIn ? "Checked in" : "Activities logged"}</small></div>
+              <div className="text-end"><div className="fw-bolder text-primary fs-5">{formatPoints(calculateDailyScore(log))}</div><small className="text-secondary">points</small></div>
             </div>
-            <div className="row g-2 mt-2">{details.map(([label, value]) => <div key={label} className="col-6"><div className="d-flex justify-content-between gap-2 small"><span className="text-secondary">{label}</span><span className="fw-semibold text-end">{value}</span></div></div>)}</div>
+            {details.length ? <div className="row g-0 border-top mt-3 pt-2">{details.map(([label, value]) => <div key={label} className="col-6 col-sm-4 py-2 pe-2"><small className="d-block text-secondary">{label}</small><span className="fw-semibold text-break">{value}</span></div>)}</div> : <p className="text-secondary small border-top mt-3 pt-3 mb-0">Checked in, with no activities logged.</p>}
           </article>;
-        })}</div> : !dailyLogError ? <p className="text-secondary mb-0">No daily logs yet.</p> : null}
+        })}</div> : !dailyLogError ? <p className="text-secondary mb-0">No check-ins or activities logged yet.</p> : null}
       </section>
     </AppShell>
   );
