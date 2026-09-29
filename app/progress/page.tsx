@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
 import { supabase } from "@/app/lib/supabase";
-import { calculateDailyScore, formatPoints, type DailyLog } from "@/app/lib/dailyScoring";
+import { calculateDailyScore, formatPoints, getWorkoutDurationLabel, type DailyLog } from "@/app/lib/dailyScoring";
 
 function mapDatabaseLog(row: Record<string, unknown>): DailyLog {
   return {
@@ -28,7 +28,7 @@ function formatWeight(value: number | null) {
 
 function getLogDetails(log: DailyLog) {
   const details: Array<[string, string]> = [];
-  if (log.workoutMinutes > 0) details.push(["Workout", `${log.workoutMinutes} min`]);
+  if (log.workoutMinutes > 0) details.push(["Workout", getWorkoutDurationLabel(log.workoutMinutes)]);
   if (log.steps > 0) details.push(["Steps", log.steps.toLocaleString()]);
   if (log.fruit.trim()) details.push(["Fruit", log.fruit]);
   if (log.vegetable.trim()) details.push(["Vegetable", log.vegetable]);

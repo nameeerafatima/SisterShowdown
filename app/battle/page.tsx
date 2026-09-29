@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
 import { supabase } from "@/app/lib/supabase";
-import { calculateDailyScore, calculateDeliveryPoints, calculateDessertPoints, calculateDineOutPoints, calculateFruitPoints, calculateJunkFoodPoints, calculateSleepPoints, calculateStepPoints, calculateVegetablePoints, calculateWaterPoints, calculateWorkoutPoints, formatPoints, type DailyLog } from "@/app/lib/dailyScoring";
+import { calculateDailyScore, calculateDeliveryPoints, calculateDessertPoints, calculateDineOutPoints, calculateFruitPoints, calculateJunkFoodPoints, calculateSleepPoints, calculateStepPoints, calculateVegetablePoints, calculateWaterPoints, calculateWorkoutPoints, formatPoints, getWorkoutDurationLabel, type DailyLog } from "@/app/lib/dailyScoring";
 
 type Member = { user_id: string; display_name: string };
 type LogWithUser = DailyLog & { userId: string; updatedAt: string };
@@ -52,7 +52,7 @@ function activitiesFor(log: LogWithUser, name: string): Activity[] {
     activities.push({ date: log.logDate, updatedAt: log.updatedAt, category, emoji, text, points });
   };
 
-  if (log.workoutMinutes > 0) addActivity("workout", "🏋️", `${name} logged a ${log.workoutMinutes}-minute workout`, calculateWorkoutPoints(log.workoutMinutes));
+  if (log.workoutMinutes > 0) addActivity("workout", "🏋️", `${name} logged a ${getWorkoutDurationLabel(log.workoutMinutes)} workout`, calculateWorkoutPoints(log.workoutMinutes));
   if (log.steps > 0) addActivity("steps", "🚶", `${name} walked ${log.steps.toLocaleString()} steps`, calculateStepPoints(log.steps));
 
   const fruits = splitItems(log.fruit);

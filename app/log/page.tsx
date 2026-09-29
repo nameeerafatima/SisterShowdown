@@ -7,7 +7,7 @@ import { supabase } from "@/app/lib/supabase";
 import { calculateDailyScore, calculateStreak, emptyDailyLog, streakRules, type DailyLog } from "@/app/lib/dailyScoring";
 
 const habits = [
-  { emoji: "🏋️", title: "Workout", points: "+3 per hour", accent: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" },
+  { emoji: "🏋️", title: "Workout", points: "+1 to +3 by duration", accent: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" },
   { emoji: "🚶", title: "Steps", points: "+1 per 1k", accent: "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)" },
   { emoji: "🍏", title: "Fruit", points: "+1 per item", accent: "linear-gradient(135deg, #fb7185 0%, #f97316 100%)" },
   { emoji: "🥦", title: "Vegetable", points: "+1 per item", accent: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)" },

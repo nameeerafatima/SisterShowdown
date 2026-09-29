@@ -25,8 +25,8 @@ type LogModalProps = {
   initialValues?: DailyLog;
 };
 
-const categoryConfig: Record<string, { title: string; inputLabel: string; placeholder: string; type: "minutes" | "steps" | "text" | "water" | "sleep" | "toggle" }> = {
-  Workout: { title: "Workout", inputLabel: "Duration", placeholder: "01:30", type: "minutes" },
+const categoryConfig: Record<string, { title: string; inputLabel: string; placeholder: string; type: "steps" | "text" | "water" | "sleep" | "toggle" }> = {
+  Workout: { title: "Workout", inputLabel: "Choose a duration", placeholder: "", type: "text" },
   Steps: { title: "Steps", inputLabel: "Daily steps", placeholder: "8500", type: "steps" },
   Fruit: { title: "Fruit", inputLabel: "Add a fruit", placeholder: "Apple", type: "text" },
   Vegetable: { title: "Vegetable", inputLabel: "Add a vegetable", placeholder: "Broccoli", type: "text" },
@@ -38,57 +38,11 @@ const categoryConfig: Record<string, { title: string; inputLabel: string; placeh
   Delivery: { title: "Delivery", inputLabel: "Did you order delivery today?", placeholder: "", type: "toggle" },
 };
 
-function parseDurationToMinutes(value: string) {
-  if (!value) return 0;
-  const clean = value.trim();
-  const [hours, minutes] = clean.split(":");
-
-  if (hours && minutes) {
-    return Number(hours) * 60 + Number(minutes);
-  }
-
-  const numeric = Number(clean);
-  return Number.isFinite(numeric) ? Math.round(numeric) : 0;
-}
-
-function getWorkoutParts(totalMinutes: number) {
-  const safeMinutes = Number.isFinite(totalMinutes) ? Math.max(0, totalMinutes) : 0;
-  const hours = Math.floor(safeMinutes / 60);
-  const minutes = safeMinutes % 60;
-
-  return { hours, minutes };
-}
-
-function TimeScroller({
-  value,
-  max,
-  onChange,
-  label,
-}: {
-  value: number;
-  max: number;
-  onChange: (value: number) => void;
-  label: string;
-}) {
-  return (
-    <div className="flex-fill">
-      <label className="form-label small text-secondary mb-2">{label}</label>
-      <select
-        className="form-select form-select-lg rounded-3"
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        aria-label={label}
-        style={{ height: 54 }}
-      >
-        {Array.from({ length: max + 1 }, (_, index) => (
-          <option key={`${label}-${index}`} value={index}>
-            {String(index).padStart(2, "0")}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
+const workoutOptions = [
+  { label: "Less than 1 hour", minutes: 59, points: 1 },
+  { label: "1 to 2 hours", minutes: 120, points: 2 },
+  { label: "More than 2 hours", minutes: 180, points: 3 },
+];
 
 const defaultState = () => ({ ...emptyDailyLog });
 
@@ -145,8 +99,7 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
 
   const applyValue = (value: string) => {
     if (category === "Workout") {
-      const minutes = parseDurationToMinutes(value);
-      setForm((current) => ({ ...current, workoutMinutes: minutes }));
+      setForm((current) => ({ ...current, workoutMinutes: Number(value) }));
       return;
     }
 
@@ -220,19 +173,8 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
     });
   };
 
-  const workoutParts = getWorkoutParts(form.workoutMinutes);
+  const selectedWorkout = form.workoutMinutes <= 0 ? 0 : form.workoutMinutes <= 60 ? 60 : form.workoutMinutes <= 120 ? 120 : 180;
   const foodItems = (category === "Fruit" ? form.fruit : form.vegetable).split(",").map((item) => item.trim()).filter(Boolean);
-
-  const handleWorkoutTimeChange = (segment: "hours" | "minutes", nextValue: number) => {
-    const nextHours = segment === "hours" ? nextValue : workoutParts.hours;
-    const nextMinutes = segment === "minutes" ? nextValue : workoutParts.minutes;
-    const totalMinutes = nextHours * 60 + nextMinutes;
-
-    setForm((current) => ({
-      ...current,
-      workoutMinutes: totalMinutes,
-    }));
-  };
 
   return (
     <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-end justify-content-center" style={{ background: "rgba(17,24,39,0.5)", zIndex: 1100 }}>
@@ -245,19 +187,21 @@ export function LogModal({ isOpen, category, onClose, onSave, initialValues }: L
         {category === "Workout" ? (
           <div>
             <label className="form-label fw-semibold">{config.inputLabel}</label>
-            <div className="d-flex gap-2 align-items-end">
-              <TimeScroller
-                label="Hours"
-                value={workoutParts.hours}
-                max={12}
-                onChange={(value) => handleWorkoutTimeChange("hours", value)}
-              />
-              <TimeScroller
-                label="Minutes"
-                value={workoutParts.minutes}
-                max={59}
-                onChange={(value) => handleWorkoutTimeChange("minutes", value)}
-              />
+            <div className="d-grid gap-2" role="radiogroup" aria-label="Workout duration">
+              {workoutOptions.map((option) => (
+                <label key={option.minutes} className="form-check list-surface d-flex align-items-center gap-3 p-3 mb-0">
+                  <input
+                    className="form-check-input mt-0"
+                    type="radio"
+                    name="workout-duration"
+                    value={option.minutes}
+                    checked={selectedWorkout === option.minutes}
+                    onChange={(event) => applyValue(event.target.value)}
+                  />
+                  <span className="flex-grow-1">{option.label}</span>
+                  <span className="fw-semibold text-primary">+{option.points} pt{option.points > 1 ? "s" : ""}</span>
+                </label>
+              ))}
             </div>
           </div>
         ) : config.type === "toggle" ? (

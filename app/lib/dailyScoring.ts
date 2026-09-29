@@ -33,7 +33,16 @@ export const DAILY_LOG_HISTORY_STORAGE_KEY = "sister-showdown-daily-log-history"
 
 export function calculateWorkoutPoints(minutes: number) {
   if (!Number.isFinite(minutes) || minutes <= 0) return 0;
-  return Number(((minutes / 60) * 3).toFixed(1));
+  if (minutes < 60) return 1;
+  if (minutes <= 120) return 2;
+  return 3;
+}
+
+export function getWorkoutDurationLabel(minutes: number) {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "";
+  if (minutes < 60) return "Less than 1 hour";
+  if (minutes <= 120) return "1 to 2 hours";
+  return "More than 2 hours";
 }
 
 export function calculateStepPoints(steps: number) {

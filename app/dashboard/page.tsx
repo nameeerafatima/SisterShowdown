@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
 import { supabase } from "@/app/lib/supabase";
-import { calculateDailyScore, calculateStreak, calculateStepPoints, emptyDailyLog, formatPoints, getLeadMessage, streakRules, type DailyLog } from "@/app/lib/dailyScoring";
+import { calculateDailyScore, calculateStreak, calculateStepPoints, emptyDailyLog, formatPoints, getLeadMessage, getWorkoutDurationLabel, streakRules, type DailyLog } from "@/app/lib/dailyScoring";
 
 const accents = {
   Workout: "🏋️", Steps: "🚶", Fruit: "🍏", Vegetable: "🥦", Dessert: "🍰", "Junk Food": "🍟", Water: "💧", Sleep: "😴", "Dine Out": "🍽️", Delivery: "🛵",
@@ -83,7 +83,7 @@ export default function DashboardPage() {
     { label: "No dessert", rule: streakRules.noDessert },
   ];
   const habitRows = [
-    ["Workout", calculateDailyScore({ ...emptyDailyLog, workoutMinutes: savedLog.workoutMinutes }), savedLog.workoutMinutes > 0, savedLog.workoutMinutes ? `${savedLog.workoutMinutes} minutes` : "Not logged"],
+    ["Workout", calculateDailyScore({ ...emptyDailyLog, workoutMinutes: savedLog.workoutMinutes }), savedLog.workoutMinutes > 0, getWorkoutDurationLabel(savedLog.workoutMinutes) || "Not logged"],
     ["Steps", calculateStepPoints(savedLog.steps), savedLog.steps > 0, `${savedLog.steps.toLocaleString()} steps`],
     ["Fruit", savedLog.fruit.trim() ? 1 : 0, Boolean(savedLog.fruit.trim()), savedLog.fruit || "Not logged"],
     ["Vegetable", savedLog.vegetable.trim() ? 1 : 0, Boolean(savedLog.vegetable.trim()), savedLog.vegetable || "Not logged"],
