@@ -101,8 +101,14 @@ export default function DashboardPage() {
       <section className="brand-card">
         <p className="mb-3 fw-bold text-uppercase" style={{ letterSpacing: "0.18em", fontSize: 11, opacity: 0.9 }}>🏆 {competitionName.toUpperCase()}</p>
         <div className="row g-3 mb-3">
-          <div className="col-6"><div className="metric-box text-white"><p className="mb-2 text-uppercase" style={{ letterSpacing: "0.18em", fontSize: 10, opacity: 0.9 }}>Leader · {leader?.display_name ?? "Waiting"}</p><div className="score-large">{formatPoints(leader?.score ?? 0)}</div><div className="text-uppercase" style={{ letterSpacing: "0.18em", fontSize: 10, opacity: 0.9 }}>Points</div></div></div>
-          <div className="col-6"><div className="metric-box text-white"><p className="mb-2 text-uppercase" style={{ letterSpacing: "0.18em", fontSize: 10, opacity: 0.9 }}>Your score</p><div className="score-large">{formatPoints(yourMember?.score ?? 0)}</div><div className="text-uppercase" style={{ letterSpacing: "0.18em", fontSize: 10, opacity: 0.9 }}>Rank #{yourMember?.rank ?? "-"}</div></div></div>
+          <div className="col-7">
+            <div className="leader-highlight">
+              <div className="leader-highlight-top"><span className="leader-crown" aria-hidden="true">👑</span><span className="leader-kicker">Current leader</span></div>
+              <div className="leader-name">{leader?.display_name ?? "Waiting"}</div>
+              <div className="leader-score">{formatPoints(leader?.score ?? 0)}<span>pts</span></div>
+            </div>
+          </div>
+          <div className="col-5"><div className="metric-box text-white h-100 d-flex flex-column justify-content-center"><p className="mb-2 text-uppercase" style={{ letterSpacing: "0.18em", fontSize: 10, opacity: 0.9 }}>Your score</p><div className="score-large">{formatPoints(yourMember?.score ?? 0)}</div><div className="text-uppercase" style={{ letterSpacing: "0.18em", fontSize: 10, opacity: 0.9 }}>Rank #{yourMember?.rank ?? "-"}</div></div></div>
         </div>
         <div className="metric-box text-white fw-semibold">{pointsToLeader === 0 ? "You are leading or tied for the lead." : `${formatPoints(pointsToLeader)} points to the leader`}</div>
         <div className="row g-2 mt-2">

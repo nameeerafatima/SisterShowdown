@@ -149,6 +149,68 @@ button {
   padding: 0.9rem 0.8rem;
 }
 
+.leader-highlight {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-left: 4px solid #f4b400;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fffdf5 0%, #ffe69a 100%);
+  color: #382700;
+  box-shadow: 0 8px 22px rgba(80, 48, 0, 0.2);
+}
+
+.leader-highlight-top {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.leader-crown {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.leader-kicker {
+  color: #805800;
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.leader-name {
+  margin-top: 0.65rem;
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.leader-score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+  color: #2c2008;
+  font-size: clamp(2rem, 9vw, 2.65rem);
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.leader-score span {
+  color: #805800;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .list-surface {
   background: #fff7fb;
   border-radius: 18px;
