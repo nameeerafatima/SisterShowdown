@@ -66,7 +66,11 @@ export default function DashboardPage() {
         ...member,
         score: scoreTotal(scopedLogs.filter((row) => row.user_id === member.user_id).map((row) => mapDatabaseLog(row as Record<string, unknown>))),
       })).sort((first, second) => second.score - first.score || first.display_name.localeCompare(second.display_name));
-      setLeaderboard(scores.map((member, index) => ({ ...member, rank: index + 1 })));
+      let rank = 0;
+      setLeaderboard(scores.map((member, index) => {
+        if (index === 0 || member.score !== scores[index - 1].score) rank = index + 1;
+        return { ...member, rank };
+      }));
     };
 
     void loadDashboard();
@@ -77,6 +81,16 @@ export default function DashboardPage() {
   const yourMember = leaderboard.find((member) => member.user_id === currentUserId);
   const leader = leaderboard[0];
   const pointsToLeader = leader && yourMember ? Number((leader.score - yourMember.score).toFixed(1)) : 0;
+  const leadersCount = leader ? leaderboard.filter((member) => member.score === leader.score).length : 0;
+  const standingMessage = !leaderboard.length
+    ? "Standings are loading."
+    : !yourMember
+      ? "Your score isn't on the leaderboard yet."
+      : pointsToLeader > 0
+        ? `${formatPoints(pointsToLeader)} points to the leader`
+        : leadersCount > 1
+          ? `You're tied for the lead with ${leadersCount - 1} other player${leadersCount === 2 ? "" : "s"}.`
+          : "You're in 1st place!";
   const streakDisplays: Array<{ label: string; rule: (log: DailyLog) => boolean }> = [
     { label: "Workout", rule: streakRules.workout },
     { label: "No delivery", rule: streakRules.noDelivery },
@@ -110,7 +124,7 @@ export default function DashboardPage() {
           </div>
           <div className="col-5"><div className="metric-box text-white h-100 d-flex flex-column justify-content-center"><p className="mb-2 text-uppercase" style={{ letterSpacing: "0.18em", fontSize: 10, opacity: 0.9 }}>Your score</p><div className="score-large">{formatPoints(yourMember?.score ?? 0)}</div><div className="text-uppercase" style={{ letterSpacing: "0.18em", fontSize: 10, opacity: 0.9 }}>Rank #{yourMember?.rank ?? "-"}</div></div></div>
         </div>
-        <div className="metric-box text-white fw-semibold">{pointsToLeader === 0 ? "You are leading or tied for the lead." : `${formatPoints(pointsToLeader)} points to the leader`}</div>
+        <div className="metric-box text-white fw-semibold">{standingMessage}</div>
         <div className="row g-2 mt-2">
           {streakDisplays.map(({ label, rule }) => <div key={label} className="col-4"><div className="metric-box text-white p-2"><span className="fs-5">🔥</span><div className="mt-2 small">{calculateStreak(history, rule)} day {label} streak</div></div></div>)}
         </div>

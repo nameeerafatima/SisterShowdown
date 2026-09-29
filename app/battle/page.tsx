@@ -35,6 +35,12 @@ function scoreLogs(logs: LogWithUser[]) {
   return Number(logs.reduce((total, log) => total + calculateDailyScore(log), 0).toFixed(1));
 }
 
+function ordinalRank(rank: number) {
+  const lastTwoDigits = rank % 100;
+  const suffix = lastTwoDigits >= 11 && lastTwoDigits <= 13 ? "th" : rank % 10 === 1 ? "st" : rank % 10 === 2 ? "nd" : rank % 10 === 3 ? "rd" : "th";
+  return `${rank}${suffix}`;
+}
+
 function recentWeekStart() {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
@@ -125,7 +131,11 @@ export default function BattlePage() {
         const memberLogs = logs.filter((log) => log.userId === member.user_id);
         return { ...member, score: scoreLogs(memberLogs), weeklyScore: scoreLogs(memberLogs.filter((log) => log.logDate >= weekStart)) };
       }).sort((first, second) => second.score - first.score || first.display_name.localeCompare(second.display_name));
-      setLeaderboard(standings.map((member, index) => ({ ...member, rank: index + 1 })));
+      let rank = 0;
+      setLeaderboard(standings.map((member, index) => {
+        if (index === 0 || member.score !== standings[index - 1].score) rank = index + 1;
+        return { ...member, rank };
+      }));
       const names = new Map(members.map((member) => [member.user_id, member.display_name]));
       setActivities(logs.flatMap((log) => activitiesFor(log, names.get(log.userId) ?? "Member")).slice(0, 12));
     };
@@ -137,6 +147,16 @@ export default function BattlePage() {
   const leaderScore = leaderboard[0]?.score ?? 0;
   const yourScore = leaderboard.find((member) => member.user_id === currentUserId)?.score ?? 0;
   const pointsToLeader = Number((leaderScore - yourScore).toFixed(1));
+  const leadersCount = leaderboard.filter((member) => member.score === leaderScore).length;
+  const standingMessage = !leaderboard.length
+    ? "Standings are loading."
+    : yourRank === undefined
+      ? "Your score isn't on the leaderboard yet."
+      : pointsToLeader > 0
+        ? `${formatPoints(pointsToLeader)} pts behind #1`
+        : leadersCount > 1
+          ? `You're tied for the lead with ${leadersCount - 1} other player${leadersCount === 2 ? "" : "s"}.`
+          : "You're in 1st place!";
   const progressToLeader = !leaderboard.length ? 0 : pointsToLeader === 0 ? 100 : leaderScore > 0 ? Math.min(100, Math.max(0, (yourScore / leaderScore) * 100)) : 0;
   const activityGroups = activities.reduce<Array<{ date: string; label: string; items: Activity[] }>>((groups, activity) => {
     const group = groups.find((item) => item.date === activity.date);
@@ -160,7 +180,7 @@ export default function BattlePage() {
           </div>
         </div>
         <p className="battle-gap mb-3 mt-3">
-          {!leaderboard.length ? "Standings are loading" : pointsToLeader === 0 ? "You're leading or tied for #1" : `${formatPoints(pointsToLeader)} pts behind #1`}
+          {standingMessage}
         </p>
         <div className="battle-progress" role="progressbar" aria-label="Progress toward the leader's score" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progressToLeader)}>
           <span style={{ width: `${progressToLeader}%` }} />
@@ -173,7 +193,7 @@ export default function BattlePage() {
 
       <section className="soft-card p-3 mt-4" aria-labelledby="battle-leaderboard-title">
         <div className="d-flex justify-content-between align-items-center"><h2 id="battle-leaderboard-title" className="section-label mb-0">Leaderboard</h2><span className="points-badge">{leaderboard.length} players</span></div>
-        <div className="d-grid gap-3 mt-3">{leaderboard.map((member) => <div key={member.user_id} className={`list-surface d-flex align-items-center justify-content-between gap-3 ${member.user_id === currentUserId ? "border border-primary" : ""}`}><div className="d-flex align-items-center gap-3"><span>{member.rank === 1 ? "🥇" : member.rank === 2 ? "🥈" : member.rank === 3 ? "🥉" : `#${member.rank}`}</span><div><div className="fw-bold">{member.display_name}{member.user_id === currentUserId ? " (You)" : ""}</div><small className="text-secondary">Last 7 days: {formatPoints(member.weeklyScore)}</small></div></div><span className="fw-bolder">{formatPoints(member.score)} pts</span></div>)}</div>
+        <div className="d-grid gap-3 mt-3">{leaderboard.map((member) => <div key={member.user_id} className={`list-surface d-flex align-items-center justify-content-between gap-3 ${member.user_id === currentUserId ? "border border-primary" : ""}`}><div className="d-flex align-items-center gap-3"><span className="d-inline-flex align-items-center gap-1 fw-bold text-nowrap" aria-label={`${ordinalRank(member.rank)} place`}>{member.rank <= 3 ? <span aria-hidden="true">{member.rank === 1 ? "🥇" : member.rank === 2 ? "🥈" : "🥉"}</span> : null}<span>{ordinalRank(member.rank)}</span></span><div><div className="fw-bold">{member.display_name}{member.user_id === currentUserId ? " (You)" : ""}</div><small className="text-secondary">Last 7 days: {formatPoints(member.weeklyScore)}</small></div></div><span className="fw-bolder">{formatPoints(member.score)} pts</span></div>)}</div>
       </section>
 
       <section className="soft-card p-3 mt-4" aria-labelledby="recent-activity-title">
